@@ -1,0 +1,5 @@
+{
+  "flags": "-f ./build/debug/slang.f",
+  "build": "./build/debug/rtl/rv.f",
+  "commentFormat": "markdown"
+}

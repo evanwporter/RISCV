@@ -1,0 +1,5 @@
+build/
+*.vcd
+.obsidian
+.mypy_cache/
+.cache/
