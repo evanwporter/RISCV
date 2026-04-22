@@ -3,7 +3,6 @@ import riscv_decoder_types_pkg::*;
 
 package riscv_iq_types_pkg;
 
-
   /// IQ Entry provides everything needed to track an instruction from dispatch to commit
   typedef struct packed {
     /// TODO: technically this only needs to be within the IQ
@@ -24,10 +23,10 @@ package riscv_iq_types_pkg;
     /// Physical Register Source #2 ready
     logic prs2_ready;
 
+    /// Micro-op for excecution
     uop_t uop;
 
     /// ROB tracking
-    /// TODO: this could be a lot smaller
     logic [4:0] rob_idx;
 
   } IQ_entry_t;

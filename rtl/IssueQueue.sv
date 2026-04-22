@@ -1,7 +1,7 @@
 import riscv_iq_types_pkg::*;
 
 module IssueQueue #(
-    parameter IQ_SIZE   = 8,
+    parameter logic [3:0] IQ_SIZE = 8,
     parameter PTR_WIDTH = $clog2(IQ_SIZE)
 ) (
     input logic clk,
@@ -12,6 +12,8 @@ module IssueQueue #(
 );
 
   IQ_entry_t entries[IQ_SIZE];
+
+  IssueQueue_if issueQueue_if ();
 
   // Determine if IQ is full
   always_comb begin
@@ -29,7 +31,7 @@ module IssueQueue #(
     found_free = 1'b0;
     free_idx   = '0;
 
-    for (int i = 0; i < IQ_SIZE; i++) begin
+    for (logic [3:0] i = 0; i < IQ_SIZE; i++) begin
       if (!entries[i].valid && !found_free) begin
         free_idx   = 3'(i);
         found_free = 1'b1;
@@ -40,7 +42,7 @@ module IssueQueue #(
   // Sequential logic
   always_ff @(posedge clk) begin
     if (reset) begin
-      for (int i = 0; i < IQ_SIZE; i++) begin
+      for (logic [3:0] i = 0; i < IQ_SIZE; i++) begin
         entries[i] <= '0;
       end
     end else begin
@@ -49,7 +51,7 @@ module IssueQueue #(
       bus.issue_entry <= '0;
 
       // Issue selection
-      for (int i = 0; i < IQ_SIZE; i++) begin
+      for (logic [3:0] i = 0; i < IQ_SIZE; i++) begin
         if (i == 1)
           $display(
               "IQ entry %0d: valid=%b, prs1_ready=%b, prs2_ready=%b",
@@ -70,7 +72,7 @@ module IssueQueue #(
       // Wakeup (broadcast)
       if (wb_bus.valid) begin
         /// Find all regs waiting on this dst reg and mark them ready
-        for (int i = 0; i < IQ_SIZE; i++) begin
+        for (logic [3:0] i = 0; i < IQ_SIZE; i++) begin
           if (entries[i].valid) begin
             if (entries[i].prs1 == wb_bus.pdst) entries[i].prs1_ready <= 1'b1;
             if (entries[i].prs2 == wb_bus.pdst) entries[i].prs2_ready <= 1'b1;

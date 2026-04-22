@@ -102,5 +102,46 @@ Each stage needs to carry all the info needed for future stages (even if not nee
 
 > Entries in the Store Queue are allocated in the _Decode_ stage ( stq(i).valid is set). A “valid” bit denotes when an entry in the STQ holds a valid address and valid data (stq(i).bits.addr.valid and stq(i).bits.data.valid). Once a store instruction is committed, the corresponding entry in the Store Queue is marked as committed. The store is then free to be fired to the memory system at its convenience. Stores are fired to the memory in program order.
 
->Entries in the Load Queue (LDQ) are allocated in the _Decode_ stage (`ldq(i).valid`). In **Decode**, each load entry is also given a _store mask_ (`ldq(i).bits.st\_dep\_mask`), which marks which stores in the Store Queue the given load depends on.
+> Entries in the Load Queue (LDQ) are allocated in the _Decode_ stage (`ldq(i).valid`). In **Decode**, each load entry is also given a _store mask_ (`ldq(i).bits.st\_dep\_mask`), which marks which stores in the Store Queue the given load depends on.
 
+The load and store Q are necessary because they ensure that the CPU executes the instruction in order. Every cycle it checks whether the top of the Q can be executed. If so? Then it pops and executes.
+Popping an entry off the issue queue means marking the corresponding entry in the Load/Store Queue as ready to be executed.
+
+Entries are allocated during the decode stage (ie: pushed to the Q)
+
+#### Store Queue
+Each entry in the STQ holds:
+- allocated bit
+- committed bit
+- address valid + address
+- data valid + data
+- optional ROB tag / age id
+
+A store cannot update memory until it reaches the commit/retire stage.
+Reason: before commit, the instruction might still be squashed (branch mispredict, exception, etc.).
+So the STQ entry goes through:
+1. Allocated in Decode
+2. Address + data filled (via `uopSTA`/`uopSTD` or combined)
+3. Marked “committed” at ROB commit
+4. Only then allowed to fire to memory (in program order)
+#### Load Queue
+Each load queue entry holds:
+- allocated bit
+- executed bit
+- sleeping bit
+- succeeded bit
+- address valid + address
+- store dependency mask
+- whether result came from memory or forwarding
+- optional age/ROB info
+
+Loads still have to respect ordering dynamically
+When a load executes:
+It checks older stores (via store mask)
+Three cases:
+1. No matching store address
+	- Safe → go to memory immediately
+2. Match + store data ready
+	- Forward data from STQ → done
+3. Match + store data NOT ready
+	- Load goes to sleep and retries later

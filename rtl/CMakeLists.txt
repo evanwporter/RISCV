@@ -10,6 +10,7 @@ rv_add_rtl(
         ${CMAKE_CURRENT_SOURCE_DIR}/rob_types.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/decoder_types.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/iq_types.sv
+        ${CMAKE_CURRENT_SOURCE_DIR}/lsu_types.sv
     INTERFACES
         ${CMAKE_CURRENT_SOURCE_DIR}/bus.sv
     SOURCES
@@ -21,6 +22,7 @@ rv_add_rtl(
         ${CMAKE_CURRENT_SOURCE_DIR}/Decoder.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/ExecutionUnit.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/RegisterFile.sv
+        ${CMAKE_CURRENT_SOURCE_DIR}/ALU.sv
 )
 
 get_target_property(RV_PACKAGES rv_rtl INTERFACE_RV_PACKAGES)

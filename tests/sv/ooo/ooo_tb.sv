@@ -34,8 +34,9 @@ module ooo_tb;
   logic decoder_valid;
 
   // Interfaces
-  IssueQueue_if iq_if ();
-  ReorderBuffer_if rob_if ();
+  IssueQueue_if alu_iq_bus ();
+  IssueQueue_if mem_iq_bus ();
+  ReorderBuffer_if rob_bus ();
   Writeback_if wb_bus ();
 
   Decoder decoder (
@@ -59,15 +60,23 @@ module ooo_tb;
   );
 
   Dispatcher dispatcher (
-      .iq_bus (iq_if),
-      .rob_bus(rob_if),
+      .alu_iq_bus(alu_iq_bus),
+      .mem_iq_bus(mem_iq_bus),
+      .rob_bus(rob_bus),
       .rat_out(rat_out)
   );
 
-  IssueQueue iq (
+  IssueQueue alu_iq (
       .clk(clk),
       .reset(reset),
-      .bus(iq_if),
+      .bus(alu_iq_bus),
+      .wb_bus(wb_bus)
+  );
+
+  IssueQueue mem_iq (
+      .clk(clk),
+      .reset(reset),
+      .bus(mem_iq_bus),
       .wb_bus(wb_bus)
   );
 
@@ -75,7 +84,7 @@ module ooo_tb;
       .clk(clk),
       .reset(reset),
       .wb_bus(wb_bus),
-      .bus(rob_if)
+      .bus(rob_bus)
   );
 
   RF_Read_if execution_read_A_bus ();
@@ -85,7 +94,7 @@ module ooo_tb;
   ExecutionUnit eu (
       .clk(clk),
       .reset(reset),
-      .iq_bus(iq_if),
+      .iq_bus(alu_iq_bus),
       .a_bus(execution_read_A_bus),
       .b_bus(execution_read_B_bus),
       .write_bus(execution_write_bus)
@@ -157,7 +166,7 @@ module ooo_tb;
     `EXPECT_EQ(rat_out.Ps2, P3)
     `EXPECT_EQ(rat_out.advance_pipeline, 1)
 
-    `EXPECT_EQ(iq_if.push, 1)
+    `EXPECT_EQ(alu_iq_bus.push, 1)
 
     $display("\n=== Instruction 2 Decode ===");
     `EXPECT_EQ(uop.rd, x4)
@@ -171,13 +180,13 @@ module ooo_tb;
     $display("===============");
 
     $display("\n=== Instruction 1 Dispatch ===");
-    `EXPECT_EQ(iq.entries[0].valid, 1)
-    `EXPECT_EQ(iq.entries[0].pdst, P32)
-    `EXPECT_EQ(iq.entries[0].prs1, P2)
-    `EXPECT_EQ(iq.entries[0].prs2, P3)
-    `EXPECT_EQ(iq.entries[0].prs1_ready, 1)
-    `EXPECT_EQ(iq.entries[0].prs2_ready, 1)
-    `EXPECT_EQ(iq.entries[0].rob_idx, 0)
+    `EXPECT_EQ(alu_iq.entries[0].valid, 1)
+    `EXPECT_EQ(alu_iq.entries[0].pdst, P32)
+    `EXPECT_EQ(alu_iq.entries[0].prs1, P2)
+    `EXPECT_EQ(alu_iq.entries[0].prs2, P3)
+    `EXPECT_EQ(alu_iq.entries[0].prs1_ready, 1)
+    `EXPECT_EQ(alu_iq.entries[0].prs2_ready, 1)
+    `EXPECT_EQ(alu_iq.entries[0].rob_idx, 0)
 
     `EXPECT_EQ(rob.rob_entries[0].valid, 1)
     `EXPECT_EQ(rob.rob_entries[0].busy, 1)
@@ -199,23 +208,23 @@ module ooo_tb;
     $display("===============");
 
     $display("\n=== Instruction 1 Issue ===");
-    `EXPECT_EQ(iq_if.issue_valid, 1)
-    `EXPECT_EQ(iq_if.issue_entry.pdst, P32)
-    `EXPECT_EQ(iq_if.issue_entry.prs1, P2)
-    `EXPECT_EQ(iq_if.issue_entry.prs2, P3)
-    `EXPECT_EQ(iq_if.issue_entry.prs1_ready, 1)
-    `EXPECT_EQ(iq_if.issue_entry.prs2_ready, 1)
-    `EXPECT_EQ(iq_if.issue_entry.rob_idx, 0)
-    `EXPECT_EQ(iq.entries[0].valid, 0)
+    `EXPECT_EQ(alu_iq_bus.issue_valid, 1)
+    `EXPECT_EQ(alu_iq_bus.issue_entry.pdst, P32)
+    `EXPECT_EQ(alu_iq_bus.issue_entry.prs1, P2)
+    `EXPECT_EQ(alu_iq_bus.issue_entry.prs2, P3)
+    `EXPECT_EQ(alu_iq_bus.issue_entry.prs1_ready, 1)
+    `EXPECT_EQ(alu_iq_bus.issue_entry.prs2_ready, 1)
+    `EXPECT_EQ(alu_iq_bus.issue_entry.rob_idx, 0)
+    `EXPECT_EQ(alu_iq.entries[0].valid, 0)
 
     $display("\n=== Instruction 2 Dispatch ===");
-    `EXPECT_EQ(iq.entries[1].valid, 1)
-    `EXPECT_EQ(iq.entries[1].pdst, P33)
-    `EXPECT_EQ(iq.entries[1].prs1, P32)
-    `EXPECT_EQ(iq.entries[1].prs2, P5)
-    `EXPECT_EQ(iq.entries[1].prs1_ready, 0)
-    `EXPECT_EQ(iq.entries[1].prs2_ready, 1)
-    `EXPECT_EQ(iq.entries[1].rob_idx, 1)
+    `EXPECT_EQ(alu_iq.entries[1].valid, 1)
+    `EXPECT_EQ(alu_iq.entries[1].pdst, P33)
+    `EXPECT_EQ(alu_iq.entries[1].prs1, P32)
+    `EXPECT_EQ(alu_iq.entries[1].prs2, P5)
+    `EXPECT_EQ(alu_iq.entries[1].prs1_ready, 0)
+    `EXPECT_EQ(alu_iq.entries[1].prs2_ready, 1)
+    `EXPECT_EQ(alu_iq.entries[1].rob_idx, 1)
 
     `EXPECT_EQ(rob.rob_entries[1].valid, 1)
     `EXPECT_EQ(rob.rob_entries[1].busy, 1)
@@ -256,13 +265,13 @@ module ooo_tb;
     `EXPECT_EQ(rob.rob_entries[0].valid, 0)
     `EXPECT_EQ(rob.head, 1)
 
-    `EXPECT_EQ(iq.entries[1].valid, 1)
-    `EXPECT_EQ(iq.entries[1].pdst, P33)
-    `EXPECT_EQ(iq.entries[1].prs1, P32)
-    `EXPECT_EQ(iq.entries[1].prs2, P5)
-    `EXPECT_EQ(iq.entries[1].prs1_ready, 1)
-    `EXPECT_EQ(iq.entries[1].prs2_ready, 1)
-    `EXPECT_EQ(iq.entries[1].rob_idx, 1)
+    `EXPECT_EQ(alu_iq.entries[1].valid, 1)
+    `EXPECT_EQ(alu_iq.entries[1].pdst, P33)
+    `EXPECT_EQ(alu_iq.entries[1].prs1, P32)
+    `EXPECT_EQ(alu_iq.entries[1].prs2, P5)
+    `EXPECT_EQ(alu_iq.entries[1].prs1_ready, 1)
+    `EXPECT_EQ(alu_iq.entries[1].prs2_ready, 1)
+    `EXPECT_EQ(alu_iq.entries[1].rob_idx, 1)
 
     // $display("\n=== Instruction 2 Execution ===");
     // `EXPECT_EQ(execution_write_bus.en, 1)
@@ -276,14 +285,14 @@ module ooo_tb;
     $display("===============");
 
     $display("\n=== Instruction 2 Issue ===");
-    `EXPECT_EQ(iq_if.issue_valid, 1)
-    `EXPECT_EQ(iq_if.issue_entry.pdst, P33)
-    `EXPECT_EQ(iq_if.issue_entry.prs1, P32)
-    `EXPECT_EQ(iq_if.issue_entry.prs2, P5)
-    `EXPECT_EQ(iq_if.issue_entry.prs1_ready, 1)
-    `EXPECT_EQ(iq_if.issue_entry.prs2_ready, 1)
-    `EXPECT_EQ(iq_if.issue_entry.rob_idx, 1)
-    `EXPECT_EQ(iq.entries[1].valid, 0)
+    `EXPECT_EQ(alu_iq_bus.issue_valid, 1)
+    `EXPECT_EQ(alu_iq_bus.issue_entry.pdst, P33)
+    `EXPECT_EQ(alu_iq_bus.issue_entry.prs1, P32)
+    `EXPECT_EQ(alu_iq_bus.issue_entry.prs2, P5)
+    `EXPECT_EQ(alu_iq_bus.issue_entry.prs1_ready, 1)
+    `EXPECT_EQ(alu_iq_bus.issue_entry.prs2_ready, 1)
+    `EXPECT_EQ(alu_iq_bus.issue_entry.rob_idx, 1)
+    `EXPECT_EQ(alu_iq.entries[1].valid, 0)
 
     @(posedge clk);
     $display("\n===============");
