@@ -1,5 +1,3 @@
-import riscv_types_pkg::*;
-
 package riscv_regs_types_pkg;
 
   typedef enum logic [5:0] {

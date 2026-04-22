@@ -1,7 +1,6 @@
 import riscv_regs_types_pkg::*;
 import riscv_rob_types_pkg::*;
 import riscv_iq_types_pkg::*;
-import constants_pkg::*;
 import riscv_types_pkg::*;
 import riscv_decoder_types_pkg::*;
 

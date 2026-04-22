@@ -1,4 +1,3 @@
-import riscv_types_pkg::*;
 import riscv_decoder_types_pkg::*;
 
 module ALU (

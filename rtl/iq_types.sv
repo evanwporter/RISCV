@@ -1,5 +1,4 @@
 import riscv_regs_types_pkg::*;
-import riscv_rob_types_pkg::*;
 import riscv_decoder_types_pkg::*;
 
 package riscv_iq_types_pkg;

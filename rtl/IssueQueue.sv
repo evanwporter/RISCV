@@ -1,5 +1,4 @@
 import riscv_iq_types_pkg::*;
-import riscv_regs_types_pkg::*;
 
 module IssueQueue #(
     parameter IQ_SIZE   = 8,

@@ -1,5 +1,4 @@
 import riscv_types_pkg::*;
-import riscv_regs_types_pkg::*;
 
 module RegisterFile (
     input logic clk,

@@ -1,14 +1,7 @@
 import riscv_regs_types_pkg::*;
-import riscv_rob_types_pkg::*;
 import riscv_decoder_types_pkg::*;
-import riscv_iq_types_pkg::*;
 
-module Dispatcher #(
-    parameter PTR_WIDTH = 5
-) (
-    input logic clk,
-    input logic reset,
-
+module Dispatcher (
     IssueQueue_if.Dispatcher_Side iq_bus,
     ReorderBuffer_if.Dispatcher_Side rob_bus,
 
