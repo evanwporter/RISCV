@@ -102,5 +102,9 @@ package riscv_regs_types_pkg;
     x31 = 5'd31
   } logical_reg_t;
 
-  typedef logic [constants_pkg::NUM_PHYSICAL_REGS-1:0] free_list_t;
+  typedef logic [4:0] logical_reg_addr_t;
+
+  typedef logic [5:0] physical_reg_addr_t;
+
+  typedef logic [riscv_constants_pkg::NUM_PHYSICAL_REGS-1:0] free_list_t;
 endpackage : riscv_regs_types_pkg

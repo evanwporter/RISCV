@@ -1,4 +1,4 @@
-import constants_pkg::*;
+import riscv_constants_pkg::*;
 import riscv_types_pkg::*;
 import riscv_regs_types_pkg::*;
 import riscv_decoder_types_pkg::*;
@@ -6,9 +6,8 @@ import riscv_decoder_types_pkg::*;
 module RegisterRenamer (
     input logic clk,
     input logic reset,
-    input uop_t uop,
     input free_list_t freed_list,
-    input logic advance_pipeline,
+    input decoder_output_t decoder_out,
     output rat_output_t rat_out,
     Writeback_if.Renamer_Side wb_bus
 );
@@ -46,10 +45,10 @@ module RegisterRenamer (
   logical_reg_t rs1, rs2;
 
   always_comb begin
-    if (!uop.has_rs1) rs1 = x0;
-    else rs1 = uop.rs1;
-    if (!uop.has_rs2) rs2 = x0;
-    else rs2 = uop.rs2;
+    if (!decoder_out.uop.has_rs1) rs1 = x0;
+    else rs1 = decoder_out.uop.rs1;
+    if (!decoder_out.uop.has_rs2) rs2 = x0;
+    else rs2 = decoder_out.uop.rs2;
   end
 
   always_ff @(posedge clk) begin
@@ -67,7 +66,7 @@ module RegisterRenamer (
       end
     end else begin
       rat_out <= '0;
-      if (advance_pipeline) begin
+      if (decoder_out.valid) begin
         rat_out.advance_pipeline <= 1'b1;
 
         free_list_next = free_list | freed_list;
@@ -86,23 +85,23 @@ module RegisterRenamer (
           busy_list[wb_bus.pdst] <= 1'b0;
         end
 
-        if (uop.has_rd) begin
-          if (uop.rd == x0) begin
+        if (decoder_out.uop.has_rd) begin
+          if (decoder_out.uop.rd == x0) begin
             // x0 special case
             rat_out.Pd_old <= P0;
             rat_out.Pd_new <= P0;
           end else if (next_free.valid) begin
-            rat_out.Pd_old <= RAT[uop.rd];
+            rat_out.Pd_old <= RAT[decoder_out.uop.rd];
             rat_out.Pd_new <= next_free.idx;
 
-            RAT[uop.rd] <= next_free.idx;
+            RAT[decoder_out.uop.rd] <= next_free.idx;
             free_list_next[next_free.idx] = 1'b0;
 
             busy_list[next_free.idx] <= 1'b1;
           end else begin
             // no free register
-            rat_out.Pd_old <= RAT[uop.rd];
-            rat_out.Pd_new <= RAT[uop.rd];
+            rat_out.Pd_old <= RAT[decoder_out.uop.rd];
+            rat_out.Pd_new <= RAT[decoder_out.uop.rd];
           end
         end else begin
           // no destination instruction
@@ -110,9 +109,11 @@ module RegisterRenamer (
           rat_out.Pd_new <= P0;
         end
 
-        rat_out.uop <= uop;
+        rat_out.uop <= decoder_out.uop;
 
-        free_list   <= free_list_next;
+        rat_out.stq_idx <= decoder_out.stq_idx;
+
+        free_list <= free_list_next;
       end
     end
   end

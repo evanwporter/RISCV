@@ -1,4 +1,5 @@
 import riscv_types_pkg::*;
+import riscv_regs_types_pkg::*;
 
 module RegisterFile (
     input logic clk,
@@ -33,6 +34,8 @@ module RegisterFile (
       end
     end else begin
       wb_bus.valid <= 0;
+      wb_bus.pdst <= P0;
+      wb_bus.rob_idx <= '0;
       if (execution_write_bus.en) begin
         wb_bus.valid <= 1;
         wb_bus.pdst <= execution_write_bus.addr;

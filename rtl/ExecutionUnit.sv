@@ -5,53 +5,136 @@ module ExecutionUnit (
     input logic clk,
     input logic reset,
 
-    IssueQueue_if.Execution_Side iq_bus,
-    RF_Read_if.User_side a_bus,
-    RF_Read_if.User_side b_bus,
-    RF_Write_if.User_side write_bus
+    IssueQueue_if.Execution_Side alu_iq_bus,
+    IssueQueue_if.Execution_Side mem_iq_bus,
+
+    ReorderBuffer_if.Exec_Side rob_bus,
+
+    STQ_if.Execution_side stq_bus,
+
+    RF_Read_if.User_side  alu_a_bus,
+    RF_Read_if.User_side  alu_b_bus,
+    RF_Write_if.User_side alu_write_bus,
+
+    RF_Read_if.User_side  mem_a_bus,
+    RF_Read_if.User_side  mem_b_bus,
+    RF_Write_if.User_side mem_write_bus
 );
 
   ALU_if alu_bus ();
-
   ALU alu (.bus(alu_bus));
 
-  uop_t uop;
-  assign uop = iq_bus.issue_entry.uop;
+  AGU_if agu_bus ();
+  AGU agu (.bus(agu_bus));
+
+  uop_t alu_uop;
+  assign alu_uop = alu_iq_bus.issue_entry.uop;
+
+  uop_t mem_uop;
+  assign mem_uop = mem_iq_bus.issue_entry.uop;
 
   always_comb begin
-    alu_bus.op_a = 32'b0;
-    alu_bus.op_b = 32'b0;
+    alu_bus.op_a   = 32'b0;
+    alu_bus.op_b   = 32'b0;
     alu_bus.opcode = OP_ADD;
 
-    a_bus.en = 1'b0;
-    a_bus.addr = P0;
+    alu_a_bus.en   = 1'b0;
+    alu_a_bus.addr = P0;
 
-    b_bus.en = 1'b0;
-    b_bus.addr = P0;
+    alu_b_bus.en   = 1'b0;
+    alu_b_bus.addr = P0;
 
-    if (iq_bus.issue_valid) begin
-      alu_bus.opcode = uop.alu_op;
+    if (alu_iq_bus.issue_valid) begin
+      alu_bus.opcode = alu_uop.alu_op;
 
-      a_bus.en = 1'b1;
-      a_bus.addr = iq_bus.issue_entry.prs1;
-      alu_bus.op_a = a_bus.data;
+      alu_a_bus.en   = 1'b1;
+      alu_a_bus.addr = alu_iq_bus.issue_entry.prs1;
+      alu_bus.op_a   = alu_a_bus.data;
 
-      b_bus.en = 1'b1;
-      b_bus.addr = iq_bus.issue_entry.prs2;
-      alu_bus.op_b = b_bus.data;
+      alu_b_bus.en   = 1'b1;
+      alu_b_bus.addr = alu_iq_bus.issue_entry.prs2;
+      alu_bus.op_b   = alu_b_bus.data;
     end
   end
 
   always_ff @(posedge clk) begin
     if (reset) begin
     end else begin
-      write_bus.en <= 1'b0;
-      if (iq_bus.issue_valid) begin
-        write_bus.en <= 1'b1;
+      alu_write_bus.en <= 1'b0;
+      alu_write_bus.rob_idx <= '0;
+      alu_write_bus.addr <= P0;
+      alu_write_bus.data <= 32'b0;
 
-        write_bus.rob_idx <= iq_bus.issue_entry.rob_idx;
-        write_bus.addr <= iq_bus.issue_entry.pdst;
-        write_bus.data <= alu_bus.out;
+      if (alu_iq_bus.issue_valid) begin
+        alu_write_bus.en <= 1'b1;
+
+        alu_write_bus.rob_idx <= alu_iq_bus.issue_entry.rob_idx;
+        alu_write_bus.addr <= alu_iq_bus.issue_entry.pdst;
+        alu_write_bus.data <= alu_bus.out;
+      end
+    end
+  end
+
+  always_comb begin
+    // Defaults
+    agu_bus.base = '0;
+    agu_bus.offset = '0;
+    // agu_bus.op = AGU_LOAD;
+
+    stq_bus.write_addr = 1'b0;
+    stq_bus.write_addr_idx = '0;
+    stq_bus.write_addr_value = '0;
+
+    stq_bus.write_data = 1'b0;
+    stq_bus.write_data_idx = '0;
+    stq_bus.write_data_value = '0;
+
+    if (mem_iq_bus.issue_valid) begin
+      // Common: base = rs1
+      mem_a_bus.en   = 1'b1;
+      mem_a_bus.addr = mem_iq_bus.issue_entry.prs1;
+      agu_bus.base   = mem_a_bus.data;
+
+      agu_bus.offset = mem_uop.imm;
+
+      if (mem_uop.is_store) begin
+        // -------- Address path (uopSTA) --------
+        stq_bus.write_addr = 1'b1;
+        stq_bus.write_addr_idx = mem_iq_bus.issue_entry.stq_idx;
+        stq_bus.write_addr_value = agu_bus.addr;
+
+        // -------- Data path (uopSTD) --------
+        mem_b_bus.en = 1'b1;
+        mem_b_bus.addr = mem_iq_bus.issue_entry.prs2;
+
+        stq_bus.write_data = 1'b1;
+        stq_bus.write_data_idx = mem_iq_bus.issue_entry.stq_idx;
+        stq_bus.write_data_value = mem_b_bus.data;
+      end else if (mem_uop.is_load) begin
+        // Load: just compute address (goes to LDQ, not STQ)
+        // You’ll later hook this to LDQ instead
+      end
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    if (reset) begin
+      rob_bus.executed_op_valid <= 1'b0;
+    end else begin
+      rob_bus.executed_op_valid <= 1'b0;
+
+      /// TODO: We need seperate buses
+
+      // ALU completion
+      if (alu_iq_bus.issue_valid) begin
+        rob_bus.executed_op_valid   <= 1'b1;
+        rob_bus.executed_op_rob_idx <= alu_iq_bus.issue_entry.rob_idx;
+      end
+
+      // Store completion
+      if (mem_iq_bus.issue_valid && mem_uop.is_store) begin
+        rob_bus.executed_op_valid   <= 1'b1;
+        rob_bus.executed_op_rob_idx <= mem_iq_bus.issue_entry.rob_idx;
       end
     end
   end

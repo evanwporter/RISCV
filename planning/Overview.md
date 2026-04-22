@@ -104,8 +104,11 @@ Each stage needs to carry all the info needed for future stages (even if not nee
 
 > Entries in the Load Queue (LDQ) are allocated in the _Decode_ stage (`ldq(i).valid`). In **Decode**, each load entry is also given a _store mask_ (`ldq(i).bits.st\_dep\_mask`), which marks which stores in the Store Queue the given load depends on.
 
-The load and store Q are necessary because they ensure that the CPU executes the instruction in order. Every cycle it checks whether the top of the Q can be executed. If so? Then it pops and executes.
-Popping an entry off the issue queue means marking the corresponding entry in the Load/Store Queue as ready to be executed.
+The store Q are necessary because they ensure that the CPU executes the instruction in order. 
+Every cycle it checks whether the top of the STQ can be executed. If so? Then it pops and executes the store operation.
+Popping an entry off the issue queue means marking the corresponding entry in the Load/Store Queue as ready to be executed (or at least the address or data is valid).
+
+The Load Queue executes whenever its ready, even if that means out of order.
 
 Entries are allocated during the decode stage (ie: pushed to the Q)
 

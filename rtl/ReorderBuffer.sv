@@ -1,5 +1,5 @@
 import riscv_rob_types_pkg::*;
-import constants_pkg::*;
+import riscv_constants_pkg::*;
 
 module ReorderBuffer #(
     parameter ROB_SIZE  = 32,
@@ -9,7 +9,8 @@ module ReorderBuffer #(
     input logic reset,
 
     Writeback_if.ROB_Side wb_bus,
-    ReorderBuffer_if.ROB_Side bus
+    ReorderBuffer_if.ROB_Side bus,
+    STQ_if.ROB_side stq_bus
 );
 
   ROB_entry_t rob_entries[ROB_SIZE];
@@ -43,18 +44,28 @@ module ReorderBuffer #(
 
     end else begin
 
-      // Writeback: mark done
-      if (wb_bus.valid) begin
-        rob_entries[wb_bus.rob_idx].busy <= 1'b0;
+      if (bus.executed_op_valid) begin
+        rob_entries[bus.executed_op_rob_idx] <= 1'b0;
       end
+
+      stq_bus.commit <= 1'b0;
 
       // Commit (pop from head)
       for (i = 0; i < COMMIT_WIDTH; i++) begin
         idx = head + i;
 
-        if (rob_entries[idx].valid && (!rob_entries[idx].busy || (wb_bus.valid && wb_bus.rob_idx == idx)) && !rob_entries[idx].exception) begin
+        if (rob_entries[idx].valid && (!rob_entries[idx].busy || 
+            (bus.executed_op_valid && bus.executed_op_rob_idx == idx)) && 
+            !rob_entries[idx].exception) begin
 
           rob_entries[idx].valid <= 1'b0;
+
+          // TODO: Handle multiple commits per cycle
+          if (rob_entries[idx].stq_idx_valid) begin
+            stq_bus.commit <= 1'b1;
+            stq_bus.commit_idx <= rob_entries[idx].stq_idx;
+          end
+
           commit_count++;
 
         end else begin

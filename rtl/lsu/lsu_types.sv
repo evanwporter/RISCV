@@ -19,12 +19,14 @@ package riscv_lsu_types_pkg;
   } ldq_entry_t;
 
   typedef struct packed {
-    logic valid;  // entry allocated
-    logic committed;  // ROB committed
-    logic addr_valid;
-    logic [4:0] addr;
-    logic data_valid;
+    logic  valid;
+    logic  committed;
+    logic  addr_valid;
+    addr_t addr;
+    logic  data_valid;
     word_t data;
   } stq_entry_t;
+
+  typedef logic [1:0] stq_idx_t;
 
 endpackage : riscv_lsu_types_pkg

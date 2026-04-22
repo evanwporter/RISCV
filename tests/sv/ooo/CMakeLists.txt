@@ -2,6 +2,7 @@ add_executable(test_ooo)
 
 rv_add_rtl(
     TESTBENCHES
+        ${CMAKE_CURRENT_SOURCE_DIR}/mock_mem.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/ooo_tb.sv
 )
 
@@ -18,7 +19,10 @@ verilate(test_ooo
         ${RV_INTERFACES}
         ${RV_SOURCES}
         ${RV_TESTBENCHES}
-
+    INCLUDE_DIRS
+        ${RV_INCLUDE_DIR}
+        ${RV_SRC_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}/
     VERILATOR_ARGS
         --sv
         --trace
@@ -26,12 +30,10 @@ verilate(test_ooo
         --main
         -Wall
         -Wno-fatal
-        -I${RV_INCLUDE_DIR}
-        -I${RV_SRC_DIR}
-        -I${CMAKE_CURRENT_BINARY_DIR}/
         --trace-params
         --trace-structs
         --timescale "1ns/1ps"
+        +define+VCD_DIR="${CMAKE_SOURCE_DIR}/"
 )
 
 target_compile_definitions(test_ooo PUBLIC

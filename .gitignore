@@ -3,3 +3,4 @@ build/
 .obsidian
 .mypy_cache/
 .cache/
+*.surf.ron

@@ -41,11 +41,16 @@ interface ReorderBuffer_if;
 
   ROB_entry_t head_entry;
 
+  logic executed_op_valid;
+  logic [4:0] executed_op_rob_idx;
+
   modport Dispatcher_Side(input full, tail_ptr, next_tail_ptr, output push, output push_entry);
 
   modport ROB_Side(
       input push,
       input push_entry,
+      input executed_op_valid,
+      input executed_op_rob_idx,
       output full,
       output head_entry,
       output head_ptr,
@@ -53,7 +58,11 @@ interface ReorderBuffer_if;
       output next_tail_ptr
   );
 
+  modport Exec_Side(output executed_op_valid, output executed_op_rob_idx);
+
   modport Commit_Side(input head_entry, input head_ptr, input tail_ptr);
+
+
 endinterface : ReorderBuffer_if
 
 interface Writeback_if;
@@ -105,3 +114,34 @@ interface RF_Write_if;
   modport User_side(output data, output en, output addr, output rob_idx);
 
 endinterface : RF_Write_if
+
+interface AGU_if;
+
+  logic [31:0] base;
+  logic [31:0] offset;
+
+  /// 0=byte, 1=half, 2=word
+  logic [1:0] size;
+
+  logic [31:0] addr;
+  logic misalign;
+
+  modport AGU_side(input base, input offset, input size, output addr, output misalign);
+endinterface
+
+interface Memory_Bus_if;
+  addr_t addr;
+  word_t wdata;
+  word_t rdata;
+  logic  read_en;
+  logic  write_en;
+
+  /// Bus master/router master: this connects to the Peripherals, and passes
+  /// the CPU signals along to them, as well as gathering rdata from the Peripherals
+  modport Master_side(output addr, wdata, read_en, write_en, input rdata);
+
+  /// Peripherals (PPU/APU/etc.) are slaves: they listen to addr, write_en/read_en,
+  /// and drive rdata when selected.
+  modport Slave_side(input addr, wdata, read_en, write_en, output rdata);
+
+endinterface

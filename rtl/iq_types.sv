@@ -29,5 +29,7 @@ package riscv_iq_types_pkg;
     /// ROB tracking
     logic [4:0] rob_idx;
 
+    logic [1:0] stq_idx;
+
   } IQ_entry_t;
 endpackage : riscv_iq_types_pkg
