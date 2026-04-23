@@ -31,7 +31,7 @@ module IssueQueue (
 
     for (logic [3:0] i = 0; i < IQ_WIDTH; i++) begin
       if (!entries[i].valid && !found_free) begin
-        free_idx   = 3'(i);
+        free_idx   = 2'(i);
         found_free = 1'b1;
       end
     end

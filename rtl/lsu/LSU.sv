@@ -1,10 +1,7 @@
 import riscv_types_pkg::*;
 import riscv_lsu_types_pkg::*;
 
-module LSU #(
-    parameter  int DEPTH = 32,
-    localparam int IDX_W = $clog2(DEPTH)
-) (
+module LSU (
     input logic clk,
     input logic reset,
 
@@ -14,9 +11,13 @@ module LSU #(
 
   always_ff @(posedge clk) begin
     if (reset) begin
-    end else begin
-      mem_bus.read_en  <= 1'b0;
+      mem_bus.read_en <= 1'b0;
       mem_bus.write_en <= '0;
+      stq_bus.pop <= 1'b0;
+    end else begin
+      mem_bus.read_en <= 1'b0;
+      mem_bus.write_en <= '0;
+      stq_bus.pop <= 1'b0;
       if (stq_bus.mem_store_valid) begin
         mem_bus.write_en <= 1'b1;
         mem_bus.addr <= stq_bus.mem_store_addr;

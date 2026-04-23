@@ -61,6 +61,9 @@ interface STQ_if;
   /// Data to send to memory for the head store
   word_t mem_store_data;
 
+  /// Response from memory that the store has been written (for now we just pop the store from the queue, but in the future we may want to track this more precisely for store forwarding)
+  logic mem_store_written;
+
   // ----------------------------
   // Commit from ROB
   // ----------------------------

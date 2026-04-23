@@ -435,6 +435,8 @@ module ooo_tb;
     @(posedge clk);
     @(posedge clk);
 
+    repeat (10) @(posedge clk);
+
     $finish;
   end
 

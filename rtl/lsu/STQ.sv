@@ -21,7 +21,10 @@ module STQ (
   assign bus.empty = (count == '0);
 
   // Only the oldest store can fire
+  // TODO: we should be able to pop the head and push a new store in the same cycle, 
+  // but for now we require an extra cycle to pop before pushing
   wire head_can_fire =
+      !bus.pop && 
       entries[head_idx].valid &&
       entries[head_idx].committed &&
       entries[head_idx].addr_valid &&
