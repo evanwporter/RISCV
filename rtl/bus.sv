@@ -3,6 +3,7 @@ import riscv_rob_types_pkg::*;
 import riscv_iq_types_pkg::*;
 import riscv_types_pkg::*;
 import riscv_decoder_types_pkg::*;
+import riscv_constants_pkg::*;
 
 interface IssueQueue_if;
   // Dispatch interface
@@ -41,8 +42,10 @@ interface ReorderBuffer_if;
 
   ROB_entry_t head_entry;
 
-  logic executed_op_valid;
-  logic [4:0] executed_op_rob_idx;
+  // We allow `COMMIT_WIDTH` instructions to be committed at once, 
+  // so we need to track which ones are executed and ready to commit
+  logic [COMMIT_WIDTH-1:0] executed_op_valid;
+  logic [4:0] executed_op_rob_idx[COMMIT_WIDTH-1:0];
 
   modport Dispatcher_Side(input full, tail_ptr, next_tail_ptr, output push, output push_entry);
 

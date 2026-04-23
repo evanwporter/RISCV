@@ -257,7 +257,7 @@ module ooo_tb;
     `EXPECT_EQ(rat_out.Ps2, P5)
 
     $display("\n=== Instruction 3 Decode ===");
-    `EXPECT_EQ(stq.entries[0].valid, 1)
+    `EXPECT_EQ(decoder_out.uop.rs1, x6)
 
     // ============================
     // CYCLE 4
@@ -291,6 +291,10 @@ module ooo_tb;
     `EXPECT_EQ(rob.rob_entries[1].old_dest, P4)
     `EXPECT_EQ(rob.rob_entries[1].new_dest, P33)
 
+    $display("\n=== Instruction 3 Allocate Store Entry ===");
+    `EXPECT_EQ(stq.entries[0].valid, 1)
+
+
     // ============================
     // CYCLE 5
     // ============================
@@ -310,6 +314,11 @@ module ooo_tb;
     $display("=== Cycle 6 ===");
     $display("===============");
 
+    $display("\n=== Instruction 1 Commit in Progress ===");
+    `EXPECT_EQ(rob.rob_entries[0].busy, 0)
+
+    $display("\n=== Instruction 1 Writeback ===");
+
     `EXPECT_EQ(wb_bus.valid, 1)
     `EXPECT_EQ(wb_bus.pdst, P32)
     `EXPECT_EQ(wb_bus.rob_idx, 0)
@@ -319,19 +328,9 @@ module ooo_tb;
     $display("=== Cycle 7 ===");
     $display("===============");
 
-    $display("\n=== Instruction 1 Commit ===");
-
-    `EXPECT_EQ(rob.rob_entries[0].busy, 0)
+    $display("\n=== Instruction 1 Commited ===");
     `EXPECT_EQ(rob.rob_entries[0].valid, 0)
     `EXPECT_EQ(rob.head, 1)
-
-    `EXPECT_EQ(alu_iq.entries[1].valid, 1)
-    `EXPECT_EQ(alu_iq.entries[1].pdst, P33)
-    `EXPECT_EQ(alu_iq.entries[1].prs1, P32)
-    `EXPECT_EQ(alu_iq.entries[1].prs2, P5)
-    `EXPECT_EQ(alu_iq.entries[1].prs1_ready, 1)
-    `EXPECT_EQ(alu_iq.entries[1].prs2_ready, 1)
-    `EXPECT_EQ(alu_iq.entries[1].rob_idx, 1)
 
     // $display("\n=== Instruction 2 Execution ===");
     // `EXPECT_EQ(execution_alu_write_bus.en, 1)
@@ -343,6 +342,14 @@ module ooo_tb;
     $display("\n===============");
     $display("=== Cycle 8 ===");
     $display("===============");
+
+    $display("\n=== Instruction 1 Commit ===");
+
+    `EXPECT_EQ(rob.rob_entries[0].busy, 0)
+    `EXPECT_EQ(rob.rob_entries[0].valid, 0)
+    `EXPECT_EQ(rob.head, 1)
+
+    `EXPECT_EQ(alu_iq.entries[1].valid, 0)
 
     $display("\n=== Instruction 2 Issue ===");
     `EXPECT_EQ(alu_iq_bus.issue_valid, 1)

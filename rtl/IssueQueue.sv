@@ -52,19 +52,10 @@ module IssueQueue #(
 
       // Issue selection
       for (logic [3:0] i = 0; i < IQ_SIZE; i++) begin
-        // if (i == 1)
-        //   $display(
-        //       "IQ entry %0d: valid=%b, prs1_ready=%b, prs2_ready=%b",
-        //       i,
-        //       entries[i].valid,
-        //       entries[i].prs1_ready,
-        //       entries[i].prs2_ready
-        //   );
         if (entries[i].valid && entries[i].prs1_ready && entries[i].prs2_ready) begin
           bus.issue_entry  <= entries[i];
           bus.issue_valid  <= 1'b1;
           entries[i].valid <= 1'b0;
-          // $display("Issuing IQ entry %0d", i);
           break;
         end
       end
@@ -82,7 +73,6 @@ module IssueQueue #(
 
       // Push (dispatch)
       if (bus.push && found_free) begin
-        $display("Pushing to IQ entry %0d", free_idx);
         entries[free_idx] <= bus.push_entry;
         // entries[free_idx].valid <= 1'b1;
       end

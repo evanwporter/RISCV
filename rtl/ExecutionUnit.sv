@@ -79,7 +79,6 @@ module ExecutionUnit (
     // Defaults
     agu_bus.base = '0;
     agu_bus.offset = '0;
-    // agu_bus.op = AGU_LOAD;
 
     stq_bus.write_addr = 1'b0;
     stq_bus.write_addr_idx = '0;
@@ -127,14 +126,14 @@ module ExecutionUnit (
 
       // ALU completion
       if (alu_iq_bus.issue_valid) begin
-        rob_bus.executed_op_valid   <= 1'b1;
-        rob_bus.executed_op_rob_idx <= alu_iq_bus.issue_entry.rob_idx;
+        rob_bus.executed_op_valid[0]   <= 1'b1;
+        rob_bus.executed_op_rob_idx[0] <= alu_iq_bus.issue_entry.rob_idx;
       end
 
       // Store completion
       if (mem_iq_bus.issue_valid && mem_uop.is_store) begin
-        rob_bus.executed_op_valid   <= 1'b1;
-        rob_bus.executed_op_rob_idx <= mem_iq_bus.issue_entry.rob_idx;
+        rob_bus.executed_op_valid[1]   <= 1'b1;
+        rob_bus.executed_op_rob_idx[1] <= mem_iq_bus.issue_entry.rob_idx;
       end
     end
   end

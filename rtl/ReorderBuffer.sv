@@ -43,20 +43,21 @@ module ReorderBuffer #(
       end
 
     end else begin
-
-      if (bus.executed_op_valid) begin
-        rob_entries[bus.executed_op_rob_idx] <= 1'b0;
+      for (i = 0; i < COMMIT_WIDTH; i++) begin
+        // Mark entries that have been executed as not busy anymore 
+        // (i.e. their results are ready and they can be committed)
+        if (bus.executed_op_valid[i]) begin
+          rob_entries[bus.executed_op_rob_idx[i]].busy <= 1'b0;
+        end
       end
 
       stq_bus.commit <= 1'b0;
 
-      // Commit (pop from head)
+      // Commit (keep popping entries starting from head until we get to a not busy entry)
       for (i = 0; i < COMMIT_WIDTH; i++) begin
         idx = head + i;
 
-        if (rob_entries[idx].valid && (!rob_entries[idx].busy || 
-            (bus.executed_op_valid && bus.executed_op_rob_idx == idx)) && 
-            !rob_entries[idx].exception) begin
+        if (rob_entries[idx].valid && !rob_entries[idx].busy && !rob_entries[idx].exception) begin
 
           rob_entries[idx].valid <= 1'b0;
 
