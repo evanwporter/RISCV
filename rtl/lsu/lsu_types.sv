@@ -1,4 +1,5 @@
 import riscv_types_pkg::*;
+import riscv_constants_pkg::*;
 
 package riscv_lsu_types_pkg;
 
@@ -27,6 +28,6 @@ package riscv_lsu_types_pkg;
     word_t data;
   } stq_entry_t;
 
-  typedef logic [1:0] stq_idx_t;
+  typedef logic [STQ_IDX_WIDTH-1:0] stq_idx_t;
 
 endpackage : riscv_lsu_types_pkg

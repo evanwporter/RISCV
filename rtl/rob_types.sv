@@ -1,5 +1,6 @@
 import riscv_regs_types_pkg::*;
 import riscv_lsu_types_pkg::*;
+import riscv_constants_pkg::*;
 
 package riscv_rob_types_pkg;
 
@@ -16,7 +17,7 @@ package riscv_rob_types_pkg;
 
     /// The store queue index this instruction depends on
     /// if its a store.
-    logic [1:0] stq_idx;
+    logic [STQ_IDX_WIDTH-1:0] stq_idx;
 
   } ROB_entry_t;
 

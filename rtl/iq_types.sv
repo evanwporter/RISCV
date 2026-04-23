@@ -1,5 +1,6 @@
 import riscv_regs_types_pkg::*;
 import riscv_decoder_types_pkg::*;
+import riscv_constants_pkg::*;
 
 package riscv_iq_types_pkg;
 
@@ -29,7 +30,7 @@ package riscv_iq_types_pkg;
     /// ROB tracking
     logic [4:0] rob_idx;
 
-    logic [1:0] stq_idx;
+    logic [STQ_IDX_WIDTH-1:0] stq_idx;
 
   } IQ_entry_t;
 endpackage : riscv_iq_types_pkg

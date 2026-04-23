@@ -1,5 +1,6 @@
 import riscv_regs_types_pkg::*;
 import riscv_lsu_types_pkg::*;
+import riscv_constants_pkg::*;
 
 package riscv_decoder_types_pkg;
   /// R-type Instructions
@@ -200,14 +201,14 @@ package riscv_decoder_types_pkg;
 
     uop_t uop;
 
-    logic [1:0] stq_idx;
+    logic [STQ_IDX_WIDTH-1:0] stq_idx;
 
   } rat_output_t;
 
   typedef struct packed {
     logic valid;
     uop_t uop;
-    logic [1:0] stq_idx;
+    logic [STQ_IDX_WIDTH-1:0] stq_idx;
   } decoder_output_t;
 
 endpackage : riscv_decoder_types_pkg

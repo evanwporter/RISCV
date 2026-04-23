@@ -1,25 +1,23 @@
 import riscv_types_pkg::*;
 import riscv_lsu_types_pkg::*;
+import riscv_constants_pkg::*;
 
-module STQ #(
-    parameter  int DEPTH = 4,
-    localparam int IDX_W = $clog2(DEPTH)
-) (
+module STQ (
     input logic clk,
     input logic reset,
 
     STQ_if.STQ_side bus
 );
 
-  stq_entry_t entries[DEPTH];
+  stq_entry_t entries[STQ_WIDTH];
 
   /// Head represents the oldest store in the queue, and only it may fire (pop from queue and send to memory)
-  logic [IDX_W-1:0] head_idx;
+  logic [STQ_IDX_WIDTH-1:0] head_idx;
 
   /// Count of valid entries in the queue
-  logic [IDX_W:0] count;
+  logic [STQ_IDX_WIDTH:0] count;
 
-  assign bus.full  = (count == DEPTH);
+  assign bus.full  = (count == STQ_WIDTH);
   assign bus.empty = (count == '0);
 
   // Only the oldest store can fire
@@ -35,7 +33,7 @@ module STQ #(
 
   genvar i;
   generate
-    for (i = 0; i < DEPTH; i++) begin : g_out
+    for (i = 0; i < STQ_WIDTH; i++) begin : g_out
       assign bus.entries[i] = entries[i];
       assign bus.valid_mask[i] = entries[i].valid;
     end
@@ -47,7 +45,7 @@ module STQ #(
       head_idx <= '0;
       bus.tail_idx <= '0;
       count <= '0;
-      for (k = 0; k < DEPTH; k++) begin
+      for (k = 0; k < STQ_WIDTH; k++) begin
         entries[k] <= '0;
       end
     end else begin

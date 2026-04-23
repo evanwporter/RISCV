@@ -1,8 +1,9 @@
 import riscv_types_pkg::*;
 import riscv_lsu_types_pkg::*;
+import riscv_constants_pkg::*;
 
 interface STQ_if;
-  parameter int DEPTH = 4;
+  parameter int DEPTH = STQ_WIDTH;
   localparam int IDX_W = $clog2(DEPTH);
 
   /// Decode allocation

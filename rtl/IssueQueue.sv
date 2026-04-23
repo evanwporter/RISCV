@@ -1,9 +1,7 @@
 import riscv_iq_types_pkg::*;
+import riscv_constants_pkg::*;
 
-module IssueQueue #(
-    parameter logic [3:0] IQ_SIZE = 8,
-    parameter PTR_WIDTH = $clog2(IQ_SIZE)
-) (
+module IssueQueue (
     input logic clk,
     input logic reset,
 
@@ -11,27 +9,27 @@ module IssueQueue #(
     Writeback_if.IQ_Side  wb_bus
 );
 
-  IQ_entry_t entries[IQ_SIZE];
+  IQ_entry_t entries[IQ_WIDTH];
 
   IssueQueue_if issueQueue_if ();
 
   // Determine if IQ is full
   always_comb begin
     bus.full = 1'b1;
-    for (int i = 0; i < IQ_SIZE; i++) begin
+    for (int i = 0; i < IQ_WIDTH; i++) begin
       if (!entries[i].valid) bus.full = 1'b0;
     end
   end
 
   // Find first free slot (for push)
-  logic [PTR_WIDTH-1:0] free_idx;
+  logic [IQ_IDX_WIDTH-1:0] free_idx;
   logic found_free;
 
   always_comb begin
     found_free = 1'b0;
     free_idx   = '0;
 
-    for (logic [3:0] i = 0; i < IQ_SIZE; i++) begin
+    for (logic [3:0] i = 0; i < IQ_WIDTH; i++) begin
       if (!entries[i].valid && !found_free) begin
         free_idx   = 3'(i);
         found_free = 1'b1;
@@ -42,7 +40,7 @@ module IssueQueue #(
   // Sequential logic
   always_ff @(posedge clk) begin
     if (reset) begin
-      for (logic [3:0] i = 0; i < IQ_SIZE; i++) begin
+      for (logic [3:0] i = 0; i < IQ_WIDTH; i++) begin
         entries[i] <= '0;
       end
     end else begin
@@ -51,7 +49,7 @@ module IssueQueue #(
       bus.issue_entry <= '0;
 
       // Issue selection
-      for (logic [3:0] i = 0; i < IQ_SIZE; i++) begin
+      for (logic [3:0] i = 0; i < IQ_WIDTH; i++) begin
         if (entries[i].valid && entries[i].prs1_ready && entries[i].prs2_ready) begin
           bus.issue_entry  <= entries[i];
           bus.issue_valid  <= 1'b1;
@@ -63,7 +61,7 @@ module IssueQueue #(
       // Wakeup (broadcast)
       if (wb_bus.valid) begin
         /// Find all regs waiting on this dst reg and mark them ready
-        for (logic [3:0] i = 0; i < IQ_SIZE; i++) begin
+        for (logic [3:0] i = 0; i < IQ_WIDTH; i++) begin
           if (entries[i].valid) begin
             if (entries[i].prs1 == wb_bus.pdst) entries[i].prs1_ready <= 1'b1;
             if (entries[i].prs2 == wb_bus.pdst) entries[i].prs2_ready <= 1'b1;

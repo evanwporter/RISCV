@@ -1,10 +1,7 @@
 import riscv_rob_types_pkg::*;
 import riscv_constants_pkg::*;
 
-module ReorderBuffer #(
-    parameter ROB_SIZE  = 32,
-    parameter PTR_WIDTH = $clog2(ROB_SIZE)
-) (
+module ReorderBuffer (
     input logic clk,
     input logic reset,
 
@@ -13,22 +10,22 @@ module ReorderBuffer #(
     STQ_if.ROB_side stq_bus
 );
 
-  ROB_entry_t rob_entries[ROB_SIZE];
+  ROB_entry_t rob_entries[ROB_WIDTH];
 
-  logic [PTR_WIDTH-1:0] head, tail;
+  logic [ROB_IDX_WIDTH-1:0] head, tail;
 
   assign bus.head_entry = rob_entries[head];
   assign bus.head_ptr = head;
   assign bus.tail_ptr = tail;
   assign bus.next_tail_ptr = tail + 1;
 
-  logic [PTR_WIDTH-1:0] next_tail;
+  logic [ROB_IDX_WIDTH-1:0] next_tail;
   assign next_tail = tail + 1;
 
   assign bus.full  = (next_tail == head);
 
   always_ff @(posedge clk) begin
-    logic [PTR_WIDTH-1:0] idx;
+    logic [ROB_IDX_WIDTH-1:0] idx;
     /// TODO replace i w/ commit_count
     int i;
     logic [4:0] commit_count;
@@ -38,7 +35,7 @@ module ReorderBuffer #(
       head <= '0;
       tail <= '0;
 
-      for (int j = 0; j < ROB_SIZE; j++) begin
+      for (int j = 0; j < ROB_WIDTH; j++) begin
         rob_entries[j] <= '0;
       end
 
