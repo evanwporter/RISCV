@@ -57,13 +57,6 @@ add_subdirectory(tests)
 
 find_package(Verilator REQUIRED HINTS $ENV{VERILATOR_ROOT})
 
-include(FetchContent)
-FetchContent_Declare(
-    argparse
-    GIT_REPOSITORY https://github.com/p-ranav/argparse.git
-)
-FetchContent_MakeAvailable(argparse)
-
 add_executable(rv ${CMAKE_CURRENT_SOURCE_DIR}/sim/main.cpp)
 
 target_include_directories(rv PRIVATE

@@ -1,8 +1,8 @@
 rv_add_rtl(
     PACKAGES
-        ${CMAKE_CURRENT_SOURCE_DIR}/lsu_types.sv
+        ${CMAKE_CURRENT_SOURCE_DIR}/types.sv
     INTERFACES
-        ${CMAKE_CURRENT_SOURCE_DIR}/lsu_bus.sv
+        ${CMAKE_CURRENT_SOURCE_DIR}/bus.sv
     SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/LSU.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/STQ.sv

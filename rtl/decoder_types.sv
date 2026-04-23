@@ -1,5 +1,4 @@
 import riscv_regs_types_pkg::*;
-import riscv_lsu_types_pkg::*;
 import riscv_constants_pkg::*;
 
 package riscv_decoder_types_pkg;
@@ -202,6 +201,7 @@ package riscv_decoder_types_pkg;
     uop_t uop;
 
     logic [STQ_IDX_WIDTH-1:0] stq_idx;
+    logic [LDQ_IDX_WIDTH-1:0] ldq_idx;
 
   } rat_output_t;
 
@@ -209,6 +209,7 @@ package riscv_decoder_types_pkg;
     logic valid;
     uop_t uop;
     logic [STQ_IDX_WIDTH-1:0] stq_idx;
+    logic [LDQ_IDX_WIDTH-1:0] ldq_idx;
   } decoder_output_t;
 
 endpackage : riscv_decoder_types_pkg

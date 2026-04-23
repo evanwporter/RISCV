@@ -1,6 +1,5 @@
 import riscv_types_pkg::*;
 import riscv_decoder_types_pkg::*;
-import riscv_lsu_types_pkg::*;
 
 module Decoder (
     input logic  clk,
@@ -9,6 +8,7 @@ module Decoder (
     input word_t fetched_IR,
 
     STQ_if.Decoder_side stq_bus,
+    LDQ_if.Decoder_side ldq_bus,
 
     output decoder_output_t decoder_out
 );
@@ -33,6 +33,8 @@ module Decoder (
         if (decoded_IR.opcode == OP_S_TYPE) begin
           stq_bus.push <= 1'b1;
           decoder_out.stq_idx <= stq_bus.tail_idx;
+        end else if (decoded_IR.opcode == OP_I_LOAD_TYPE) begin
+          decoder_out.ldq_idx <= ldq_bus.tail_idx;  // share tail pointer with LDQ for now
         end
       end
     end

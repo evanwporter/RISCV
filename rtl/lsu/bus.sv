@@ -1,6 +1,7 @@
 import riscv_types_pkg::*;
 import riscv_lsu_types_pkg::*;
 import riscv_constants_pkg::*;
+import riscv_regs_types_pkg::*;
 
 interface STQ_if;
   parameter int DEPTH = STQ_WIDTH;
@@ -61,9 +62,6 @@ interface STQ_if;
   /// Data to send to memory for the head store
   word_t mem_store_data;
 
-  /// Response from memory that the store has been written (for now we just pop the store from the queue, but in the future we may want to track this more precisely for store forwarding)
-  logic mem_store_written;
-
   // ----------------------------
   // Commit from ROB
   // ----------------------------
@@ -102,3 +100,54 @@ interface STQ_if;
       output write_data_value
   );
 endinterface : STQ_if
+
+interface LDQ_if;
+
+  /// Decode allocation
+  logic push;
+
+  logic pop;
+
+  logic write_addr;
+  logic [LDQ_IDX_WIDTH-1:0] write_addr_idx;
+  addr_t write_addr_value;
+
+  stq_entry_t stq_entries[STQ_WIDTH];
+
+  /// Tail pointer for the next available slot in the LDQ
+  /// Recorded by the decoder and used to track the LDQ entry in the memory IQ.
+  logic [LDQ_IDX_WIDTH-1:0] tail_idx;
+
+  /// Whether a store has been cleared from the STQ
+  logic store_cleared;
+
+  /// Index of the store cleared from the STQ (for clearing dep bits)
+  logic [STQ_IDX_WIDTH-1:0] store_cleared_idx;
+
+  // ----------------------------
+  // Memory Output
+  // ----------------------------
+
+  /// An entry in the lDQ is ready to fire (send to memory)
+  logic mem_load_valid;
+
+  /// Address to send to memory for the load/read
+  addr_t mem_load_addr;
+
+  physical_reg_t mem_load_pdst;
+
+
+  modport Decoder_side(input tail_idx, output push);
+
+  modport LSU_side(input mem_load_valid, mem_load_addr, mem_load_pdst);
+
+  modport LDQ_side(
+      input push, pop,
+      input write_addr, write_addr_idx, write_addr_value,
+      input stq_entries,
+      input store_cleared, store_cleared_idx,
+      output mem_load_valid, mem_load_addr, mem_load_pdst,
+      output tail_idx
+  );
+
+endinterface : LDQ_if

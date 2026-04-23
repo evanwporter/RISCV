@@ -48,6 +48,7 @@ module ooo_tb;
   ReorderBuffer_if rob_bus ();
   Writeback_if wb_bus ();
   STQ_if stq_bus ();
+  LDQ_if ldq_bus ();
 
   Decoder decoder (
       .clk(clk),
@@ -55,6 +56,7 @@ module ooo_tb;
       .advance_pipeline(advance_pipeline),
       .fetched_IR(fetched_IR),
       .stq_bus(stq_bus),
+      .ldq_bus(ldq_bus),
       .decoder_out(decoder_out)
   );
 
@@ -105,6 +107,8 @@ module ooo_tb;
   RF_Read_if execution_mem_read_B_bus ();
   RF_Write_if execution_mem_write_B_bus ();
 
+  RF_Write_if lsu_write_bus ();
+
   ExecutionUnit eu (
       .clk(clk),
       .reset(reset),
@@ -135,6 +139,12 @@ module ooo_tb;
       .bus  (stq_bus)
   );
 
+  LDQ ldq (
+      .clk  (clk),
+      .reset(reset),
+      .bus  (ldq_bus)
+  );
+
   Memory_Bus_if cpu_bus ();
 
   MockMemory mockMemory (
@@ -147,6 +157,8 @@ module ooo_tb;
       .clk(clk),
       .reset(reset),
       .stq_bus(stq_bus),
+      .rf_write_bus(lsu_write_bus),
+      .ldq_bus(ldq_bus),
       .mem_bus(cpu_bus)
   );
 
