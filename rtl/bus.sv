@@ -34,23 +34,28 @@ interface Commit_if;
   // We allow `COMMIT_WIDTH` instructions to be committed at once, 
   // so we need to track which ones are executed and ready to commit
   logic [COMMIT_WIDTH-1:0] executed_op_valid;
-  logic [4:0] executed_op_rob_idx[COMMIT_WIDTH-1:0];
+  logic [ROB_IDX_WIDTH-1:0] executed_op_rob_idx[COMMIT_WIDTH-1:0];
+  physical_reg_t executed_op_pdst[COMMIT_WIDTH-1:0];
 
-  logic [COMMIT_WIDTH-1:0] physical_reg_freed;
+  logic branch_valid;
+  logic branch_taken;
+  addr_t branch_target;
 
-  modport ROB_Side(input executed_op_valid, input executed_op_rob_idx);
+  ROB_entry_t committed_rob_entries[COMMIT_WIDTH-1:0];
 
-  modport Execution_Side(
-      output executed_op_valid,
-      output executed_op_rob_idx,
-      output physical_reg_freed
-  );
-
-  modport Renamer_Side(
+  modport ROB_Side(
       input executed_op_valid,
       input executed_op_rob_idx,
-      input physical_reg_freed
+      output committed_rob_entries
   );
+
+  modport Execution_Side(
+      output executed_op_valid, executed_op_rob_idx,
+      output branch_valid, branch_taken, branch_target,
+      output executed_op_pdst
+  );
+
+  modport Renamer_Side(input committed_rob_entries);
 
 endinterface : Commit_if
 
@@ -70,7 +75,7 @@ interface ReorderBuffer_if;
   // We allow `COMMIT_WIDTH` instructions to be committed at once, 
   // so we need to track which ones are executed and ready to commit
   logic [COMMIT_WIDTH-1:0] executed_op_valid;
-  logic [4:0] executed_op_rob_idx[COMMIT_WIDTH-1:0];
+  logic [ROB_IDX_WIDTH-1:0] executed_op_rob_idx[COMMIT_WIDTH-1:0];
 
   modport Dispatcher_Side(input full, tail_ptr, next_tail_ptr, output push, output push_entry);
 
@@ -99,7 +104,7 @@ interface Writeback_if;
   /// Register getting written back to.
   physical_reg_t pdst;
 
-  logic [4:0] rob_idx;
+  logic [ROB_IDX_WIDTH-1:0] rob_idx;
 
   modport Renamer_Side(input valid, input pdst);
 
@@ -134,7 +139,7 @@ interface RF_Write_if;
   logic en;
   physical_reg_t addr;
   word_t data;
-  logic [4:0] rob_idx;
+  logic [ROB_IDX_WIDTH-1:0] rob_idx;
 
   modport RF_side(input en, input addr, input rob_idx, input data);
 

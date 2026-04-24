@@ -1,3 +1,4 @@
+import riscv_types_pkg::*;
 import riscv_regs_types_pkg::*;
 import riscv_constants_pkg::*;
 
@@ -142,10 +143,15 @@ package riscv_decoder_types_pkg;
 
   } imm_kind_t;
 
+  typedef enum {
+    BRANCH_EQ,
+    BRANCH_NEQ
+  } branch_kind_t;
+
   typedef struct packed {
     // Identity
-    logic [31:0] inst;
-    logic [31:0] pc;
+    decoded_word_t inst;
+    word_t pc;
 
     // Registers (architectural)
     logical_reg_t rd;
@@ -166,6 +172,8 @@ package riscv_decoder_types_pkg;
 
     alu_op_t alu_op;
 
+    branch_kind_t branch_op;
+
     // Immediate
     imm_kind_t   imm_kind;
     logic [31:0] imm;
@@ -178,7 +186,7 @@ package riscv_decoder_types_pkg;
     logic is_store;
 
     // OoO bookkeeping
-    logic [5:0] rob_idx;
+    logic [ROB_IDX_WIDTH-1:0] rob_idx;
 
   } uop_t;
 
@@ -204,6 +212,11 @@ package riscv_decoder_types_pkg;
     logic [LDQ_IDX_WIDTH-1:0] ldq_idx;
 
   } rat_output_t;
+
+  typedef struct packed {
+    word_t IR;
+    addr_t PC;
+  } decoder_input_t;
 
   typedef struct packed {
     logic valid;

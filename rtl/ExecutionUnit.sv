@@ -1,3 +1,4 @@
+import riscv_types_pkg::*;
 import riscv_regs_types_pkg::*;
 import riscv_decoder_types_pkg::*;
 
@@ -57,6 +58,9 @@ module ExecutionUnit (
     end
   end
 
+  wire alu_exec = alu_iq_bus.issue_valid && alu_uop.is_alu;
+  wire branch_exec = alu_iq_bus.issue_valid && alu_uop.is_branch;
+
   always_ff @(posedge clk) begin
     if (reset) begin
     end else begin
@@ -65,12 +69,38 @@ module ExecutionUnit (
       alu_write_bus.addr <= P0;
       alu_write_bus.data <= 32'b0;
 
-      if (alu_iq_bus.issue_valid) begin
-        alu_write_bus.en <= 1'b1;
+      if (alu_exec) begin
+        alu_write_bus.en <= 1'b1;  // don't writeback if destination is P0 (zero reg)
+
+        // assert (alu_iq_bus.issue_entry.pdst != P0)
+        // else $error("Error: ALU is trying to write to P0, which should never happen");
 
         alu_write_bus.rob_idx <= alu_iq_bus.issue_entry.rob_idx;
         alu_write_bus.addr <= alu_iq_bus.issue_entry.pdst;
         alu_write_bus.data <= alu_bus.out;
+      end
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    if (reset) begin
+      commit_bus.branch_valid  <= 1'b0;
+      commit_bus.branch_taken  <= 1'b0;
+      commit_bus.branch_target <= '0;
+    end else begin
+      commit_bus.branch_valid <= 1'b0;
+      commit_bus.branch_taken <= 1'b0;
+
+      if (branch_exec) begin
+        commit_bus.branch_valid  <= 1'b1;
+        commit_bus.branch_target <= alu_uop.pc + alu_uop.imm;
+
+        case (alu_uop.branch_op)
+          BRANCH_EQ: commit_bus.branch_taken <= (alu_bus.op_a == alu_bus.op_b);
+          BRANCH_NEQ: commit_bus.branch_taken <= (alu_bus.op_a != alu_bus.op_b);
+          // TODO: extend
+          default: commit_bus.branch_taken <= 1'b0;
+        endcase
       end
     end
   end
@@ -126,14 +156,16 @@ module ExecutionUnit (
 
       // ALU completion
       if (alu_iq_bus.issue_valid) begin
-        commit_bus.executed_op_valid[0]   <= 1'b1;
+        commit_bus.executed_op_valid[0] <= 1'b1;
         commit_bus.executed_op_rob_idx[0] <= alu_iq_bus.issue_entry.rob_idx;
+        commit_bus.executed_op_pdst[0] <= alu_iq_bus.issue_entry.pdst;
       end
 
       // Store completion
       if (mem_iq_bus.issue_valid && mem_uop.is_store) begin
-        commit_bus.executed_op_valid[1]   <= 1'b1;
+        commit_bus.executed_op_valid[1] <= 1'b1;
         commit_bus.executed_op_rob_idx[1] <= mem_iq_bus.issue_entry.rob_idx;
+        commit_bus.executed_op_pdst[1] <= mem_iq_bus.issue_entry.pdst;
       end
     end
   end

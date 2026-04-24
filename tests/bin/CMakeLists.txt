@@ -31,7 +31,9 @@ verilate(test_bin
         -Wno-fatal
         --trace-params
         --trace-structs
-        --timescale "1ns/1ps"
+        --trace-max-array 256
+        --trace-max-width 32 
+        --timescale "1ps/1ps"
 )
 
 target_compile_definitions(test_bin PUBLIC

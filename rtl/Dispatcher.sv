@@ -32,7 +32,7 @@ module Dispatcher (
     alu_iq_bus.push_entry = '0;
 
 
-    if (rat_out.advance_pipeline && rat_out.uop.is_alu) begin
+    if (rat_out.advance_pipeline && (rat_out.uop.is_alu || rat_out.uop.is_branch)) begin
       alu_iq_bus.push = 1;
 
       alu_iq_bus.push_entry.valid = 1;

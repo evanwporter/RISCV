@@ -3,6 +3,7 @@ import riscv_regs_types_pkg::*;
 import riscv_constants_pkg::*;
 import riscv_decoder_types_pkg::*;
 import riscv_lsu_types_pkg::*;
+import testbench_utils_pkg::*;
 
 `define EXPECT_EQ(actual, expected) \
   if ((actual) !== (expected)) begin \
@@ -11,16 +12,6 @@ import riscv_lsu_types_pkg::*;
   end else begin \
     $display("[PASS] %s == %s | value=%0d", `"actual`", `"expected`", actual); \
   end
-
-function string get_dirname(input string filepath);
-  int i;
-  for (i = filepath.len() - 1; i >= 0; i--) begin
-    if (filepath[i] == "/" || filepath[i] == "\\") begin
-      return filepath.substr(0, i - 1);
-    end
-  end
-  return ".";  // fallback if no path
-endfunction
 
 module ooo_tb;
 
@@ -33,9 +24,9 @@ module ooo_tb;
   logic reset;
 
   // DUT signals
-  word_t fetched_IR;
   rat_output_t rat_out;
 
+  decoder_input_t decoder_in;
   decoder_output_t decoder_out;
 
   logic advance_pipeline;
@@ -64,7 +55,7 @@ module ooo_tb;
       .clk(clk),
       .reset(reset),
       .advance_pipeline(advance_pipeline),
-      .fetched_IR(fetched_IR),
+      .decoder_in(decoder_in),
       .stq_bus(stq_bus),
       .ldq_bus(ldq_bus),
       .decoder_out(decoder_out)
@@ -204,7 +195,7 @@ module ooo_tb;
     // ============================
     @(posedge clk);
     $display("\n=== Cycle 0 ===");
-    fetched_IR = encode_r_type(x1, x2, x3);
+    decoder_in.IR = encode_r_type(x1, x2, x3);
     advance_pipeline = 1;
 
     $display("\n=== Cycle 1 ===");
@@ -213,7 +204,7 @@ module ooo_tb;
 
     `EXPECT_EQ(decoder_out.uop.rd, x1)
 
-    fetched_IR = encode_r_type(x4, x1, x5);
+    decoder_in.IR = encode_r_type(x4, x1, x5);
     advance_pipeline = 1;
 
     // ============================
@@ -222,7 +213,7 @@ module ooo_tb;
     @(posedge clk);
     $display("\n=== Cycle 2 ===");
 
-    fetched_IR = encode_s_type(x6, x4, 12'd0);
+    decoder_in.IR = encode_s_type(x6, x4, 12'd0);
     advance_pipeline = 1;
 
     $display("\n=== Instruction 1 Rename ===");

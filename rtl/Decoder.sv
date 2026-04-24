@@ -1,11 +1,13 @@
 import riscv_types_pkg::*;
 import riscv_decoder_types_pkg::*;
+import riscv_regs_types_pkg::*;
 
 module Decoder (
-    input logic  clk,
-    input logic  reset,
-    input logic  advance_pipeline,
-    input word_t fetched_IR,
+    input logic clk,
+    input logic reset,
+    input logic advance_pipeline,
+
+    input decoder_input_t decoder_in,
 
     STQ_if.Decoder_side stq_bus,
     LDQ_if.Decoder_side ldq_bus,
@@ -14,7 +16,7 @@ module Decoder (
 );
 
   decoded_word_t decoded_IR;
-  assign decoded_IR = fetched_IR;
+  assign decoded_IR = decoder_in.IR;
 
   uop_t uop_next;
 
@@ -28,7 +30,7 @@ module Decoder (
       stq_bus.push <= 1'b0;
       if (advance_pipeline) begin
         decoder_out.uop   <= uop_next;
-        decoder_out.valid <= 1'b1;
+        decoder_out.valid <= uop_next.rd != P0;
 
         if (decoded_IR.opcode == OP_S_TYPE) begin
           stq_bus.push <= 1'b1;
@@ -47,7 +49,7 @@ module Decoder (
 
     // Identity
     uop_next.inst = decoded_IR;
-    uop_next.pc = '0;  // fill later when PC available
+    uop_next.pc = decoder_in.PC;
 
     // Extract common fields
     uop_next.rd = decoded_IR.extra.regs.rd;
@@ -64,7 +66,7 @@ module Decoder (
         uop_next.has_rs2  = 1'b1;
 
         uop_next.is_alu   = 1'b1;
-        uop_next.imm_kind = IMM_I;
+        uop_next.imm_kind = IMM_NONE;
 
         case ({
           decoded_IR.extra.r_type.func3, decoded_IR.extra.r_type.func7
@@ -96,7 +98,7 @@ module Decoder (
         uop_next.has_rs1 = 1'b1;
 
         uop_next.is_alu = 1'b1;
-        uop_next.imm = {{20{decoded_IR[31]}}, decoded_IR[31:20]};
+        uop_next.imm = {{20{decoded_IR[31]}}, decoded_IR.extra.i_type.imm};
         uop_next.imm_kind = IMM_I;
 
         case (decoded_IR.extra.i_type.funct3)
@@ -156,6 +158,12 @@ module Decoder (
           1'b0
         };
         uop_next.imm_kind = IMM_B;
+
+        case (decoded_IR.extra.b_type.funct3)
+          3'b000:  uop_next.branch_op = BRANCH_EQ;  // beq
+          3'b001:  uop_next.branch_op = BRANCH_NEQ;  // bne
+          default: uop_next.branch_op = BRANCH_EQ;
+        endcase
       end
 
       // JAL

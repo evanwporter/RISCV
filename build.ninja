@@ -1,0 +1,41 @@
+# ----------------------------------------
+# Config
+# ----------------------------------------
+
+as      = riscv-none-elf-as
+ld      = riscv-none-elf-ld
+objcopy = riscv-none-elf-objcopy
+python  = python
+
+name = sub
+src  = $name.s
+builddir = build
+
+# ----------------------------------------
+# Rules
+# ----------------------------------------
+
+rule assemble
+  command = $as $in -o $out
+  description = AS $in
+
+rule link
+  command = $ld -Ttext=0x0 $in -o $out
+  description = LD $out
+
+rule objcopy_bin
+  command = $objcopy -O binary $in $out
+  description = OBJCOPY $out
+
+rule bin_to_hex
+  command = $python scripts/bin2hex.py $in $out
+  description = BIN2HEX $out
+
+build $builddir/$name.o: assemble $src
+build $builddir/$name.elf: link $builddir/$name.o
+build $builddir/$name.bin: objcopy_bin $builddir/$name.elf
+
+# Final output stays in root
+build $name.hex: bin_to_hex $builddir/$name.bin
+
+default $name.hex

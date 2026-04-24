@@ -55,7 +55,11 @@ module ReorderBuffer (
       for (i = 0; i < COMMIT_WIDTH; i++) begin
         idx = head + i;
 
+        commit_bus.committed_rob_entries[i] <= '0;
+
         if (rob_entries[idx].valid && !rob_entries[idx].busy && !rob_entries[idx].exception) begin
+
+          commit_bus.committed_rob_entries[i] <= rob_entries[idx];
 
           rob_entries[idx].valid <= 1'b0;
 

@@ -44,18 +44,18 @@ file(WRITE ${RV_COMMAND_FILE} "${RV_F_CONTENT}\n")
 file(APPEND ${RV_COMMAND_FILE} "+incdir+${CMAKE_CURRENT_SOURCE_DIR}\n")
 file(APPEND ${RV_COMMAND_FILE} "+incdir+${RV_INCLUDE_DIR}\n")
 
-verilate(librv
-    PREFIX VGameboy
-    SOURCES 
-        ${RV_PACKAGES}
-        ${RV_INTERFACES}
-        ${RV_SOURCES}
-    TOP_MODULE RISCV
-    VERILATOR_ARGS
-        --sv
-        --trace-vcd
-        # -Wall
-        -I${RV_INCLUDE_DIR}
-        -O3
-)
+# verilate(librv
+#     PREFIX VGameboy
+#     SOURCES 
+#         ${RV_PACKAGES}
+#         ${RV_INTERFACES}
+#         ${RV_SOURCES}
+#     TOP_MODULE RISCV
+#     VERILATOR_ARGS
+#         --sv
+#         --trace-vcd
+#         # -Wall
+#         -I${RV_INCLUDE_DIR}
+#         -O3
+# )
 

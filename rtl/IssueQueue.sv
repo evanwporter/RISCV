@@ -29,9 +29,9 @@ module IssueQueue (
     found_free = 1'b0;
     free_idx   = '0;
 
-    for (logic [3:0] i = 0; i < IQ_WIDTH; i++) begin
+    for (int i = 0; i < IQ_WIDTH; i++) begin
       if (!entries[i].valid && !found_free) begin
-        free_idx   = 2'(i);
+        free_idx   = IQ_IDX_WIDTH'(i);
         found_free = 1'b1;
       end
     end
@@ -40,7 +40,7 @@ module IssueQueue (
   // Sequential logic
   always_ff @(posedge clk) begin
     if (reset) begin
-      for (logic [3:0] i = 0; i < IQ_WIDTH; i++) begin
+      for (int i = 0; i < IQ_WIDTH; i++) begin
         entries[i] <= '0;
       end
     end else begin
@@ -49,7 +49,7 @@ module IssueQueue (
       bus.issue_entry <= '0;
 
       // Issue selection
-      for (logic [3:0] i = 0; i < IQ_WIDTH; i++) begin
+      for (int i = 0; i < IQ_WIDTH; i++) begin
         if (entries[i].valid && entries[i].prs1_ready && entries[i].prs2_ready) begin
           bus.issue_entry  <= entries[i];
           bus.issue_valid  <= 1'b1;
@@ -61,7 +61,7 @@ module IssueQueue (
       // Wakeup (broadcast)
       if (wb_bus.valid) begin
         /// Find all regs waiting on this dst reg and mark them ready
-        for (logic [3:0] i = 0; i < IQ_WIDTH; i++) begin
+        for (int i = 0; i < IQ_WIDTH; i++) begin
           if (entries[i].valid) begin
             if (entries[i].prs1 == wb_bus.pdst) entries[i].prs1_ready <= 1'b1;
             if (entries[i].prs2 == wb_bus.pdst) entries[i].prs2_ready <= 1'b1;

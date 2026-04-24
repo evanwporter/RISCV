@@ -28,7 +28,7 @@ package riscv_iq_types_pkg;
     uop_t uop;
 
     /// ROB tracking
-    logic [4:0] rob_idx;
+    logic [ROB_IDX_WIDTH-1:0] rob_idx;
 
     logic [STQ_IDX_WIDTH-1:0] stq_idx;
 

@@ -5,7 +5,7 @@ module MockMemory (
     input logic reset,
     Memory_Bus_if.Slave_side bus
 );
-  word_t mem[0:255];
+  word_t mem[256];
 
   always_ff @(posedge clk) begin
     if (reset) begin
@@ -13,9 +13,9 @@ module MockMemory (
         mem[i] <= '0;
       end
     end else begin
-      bus.rdata <= mem[bus.addr[7:0]];
+      bus.rdata <= mem[bus.addr[9:2]];
       if (bus.write_en) begin
-        mem[bus.addr[7:0]] <= bus.wdata;
+        mem[bus.addr[9:2]] <= bus.wdata;
       end
     end
   end

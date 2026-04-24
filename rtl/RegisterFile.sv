@@ -11,7 +11,7 @@ module RegisterFile (
     RF_Read_if.RF_side  execution_read_B_bus,
     RF_Write_if.RF_side execution_write_bus
 );
-  word_t regs[64];
+  logic [31:0] regs[64];
 
   // Asynchronous reads
   always_comb begin
@@ -33,6 +33,9 @@ module RegisterFile (
         regs[i] <= '0;
       end
     end else begin
+      assert (regs[0] == 0)
+      else $error("Error: Register x0 should always be zero");
+
       wb_bus.valid <= 0;
       wb_bus.pdst <= P0;
       wb_bus.rob_idx <= '0;
@@ -40,7 +43,9 @@ module RegisterFile (
         wb_bus.valid <= 1;
         wb_bus.pdst <= execution_write_bus.addr;
         wb_bus.rob_idx <= execution_write_bus.rob_idx;
-        regs[execution_write_bus.addr] <= execution_write_bus.data;
+        if (execution_write_bus.addr != P0) begin
+          regs[execution_write_bus.addr] <= execution_write_bus.data;
+        end
       end
     end
   end
