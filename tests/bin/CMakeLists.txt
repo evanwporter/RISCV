@@ -1,9 +1,8 @@
-add_executable(test_ooo)
+add_executable(test_bin)
 
 rv_add_rtl(
     TESTBENCHES
-        ${CMAKE_CURRENT_SOURCE_DIR}/mock_mem.sv
-        ${CMAKE_CURRENT_SOURCE_DIR}/ooo_tb.sv
+        ${CMAKE_CURRENT_SOURCE_DIR}/top.sv
 )
 
 get_target_property(RV_PACKAGES rv_rtl INTERFACE_RV_PACKAGES)
@@ -11,9 +10,9 @@ get_target_property(RV_INTERFACES rv_rtl INTERFACE_RV_INTERFACES)
 get_target_property(RV_SOURCES rv_rtl INTERFACE_RV_SOURCES)
 get_target_property(RV_TESTBENCHES rv_rtl INTERFACE_RV_TESTBENCHES)
 
-verilate(test_ooo
-    PREFIX Vooo
-    TOP_MODULE ooo_tb
+verilate(test_bin
+    PREFIX Vbin
+    TOP_MODULE bin_top_tb
     SOURCES
         ${RV_PACKAGES}
         ${RV_INTERFACES}
@@ -33,9 +32,8 @@ verilate(test_ooo
         --trace-params
         --trace-structs
         --timescale "1ns/1ps"
-        +define+VCD_DIR="${CMAKE_SOURCE_DIR}/"
 )
 
-target_compile_definitions(test_ooo PUBLIC
+target_compile_definitions(test_bin PUBLIC
     TEST_DIR="${CMAKE_SOURCE_DIR}/tests/"
 )

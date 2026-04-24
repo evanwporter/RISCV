@@ -69,7 +69,7 @@ target_link_libraries(rv PRIVATE
 )
 
 set(SLANG_F_CONTENT
-"-f ${CMAKE_CURRENT_BINARY_DIR}/tests/sv/testbenches.f
+"-f ${CMAKE_CURRENT_BINARY_DIR}/tests/testbenches.f
 -f ${CMAKE_CURRENT_BINARY_DIR}/rtl/rv.f
 ")
 

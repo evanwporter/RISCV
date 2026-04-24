@@ -7,6 +7,7 @@ module ReorderBuffer (
 
     Writeback_if.ROB_Side wb_bus,
     ReorderBuffer_if.ROB_Side bus,
+    Commit_if.ROB_Side commit_bus,
     STQ_if.ROB_side stq_bus
 );
 
@@ -43,8 +44,8 @@ module ReorderBuffer (
       for (i = 0; i < COMMIT_WIDTH; i++) begin
         // Mark entries that have been executed as not busy anymore 
         // (i.e. their results are ready and they can be committed)
-        if (bus.executed_op_valid[i]) begin
-          rob_entries[bus.executed_op_rob_idx[i]].busy <= 1'b0;
+        if (commit_bus.executed_op_valid[i]) begin
+          rob_entries[commit_bus.executed_op_rob_idx[i]].busy <= 1'b0;
         end
       end
 

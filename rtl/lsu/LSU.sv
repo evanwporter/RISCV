@@ -1,5 +1,6 @@
 import riscv_types_pkg::*;
 import riscv_lsu_types_pkg::*;
+import riscv_regs_types_pkg::*;
 
 module LSU (
     input logic clk,
@@ -11,28 +12,48 @@ module LSU (
     RF_Write_if.User_side rf_write_bus
 );
 
+  logic pop_next;
+
   always_comb begin
-    mem_bus.read_en = 1'b0;
-    mem_bus.write_en = '0;
-    stq_bus.pop = 1'b0;
-    mem_bus.addr = 32'b0;
-    mem_bus.wdata = 32'b0;
+    mem_bus.read_en  = 1'b0;
+    mem_bus.write_en = 1'b0;
+    mem_bus.addr     = 32'b0;
+    mem_bus.wdata    = 32'b0;
+
+    pop_next         = 1'b0;
+
     if (stq_bus.mem_store_valid) begin
       mem_bus.write_en = 1'b1;
-      mem_bus.addr = stq_bus.mem_store_addr;
-      mem_bus.wdata = stq_bus.mem_store_data;
-      stq_bus.pop = 1'b1;
+      mem_bus.addr     = stq_bus.mem_store_addr;
+      mem_bus.wdata    = stq_bus.mem_store_data;
+
+      pop_next         = 1'b1;  // request pop NEXT cycle
     end else if (ldq_bus.mem_load_valid) begin
       mem_bus.read_en = 1'b1;
-      mem_bus.addr = ldq_bus.mem_load_addr;
+      mem_bus.addr    = ldq_bus.mem_load_addr;
     end
   end
 
   always_ff @(posedge clk) begin
-    if (ldq_bus.mem_load_valid) begin
-      rf_write_bus.en   <= 1'b1;
-      rf_write_bus.data <= mem_bus.rdata;
-      rf_write_bus.addr <= ldq_bus.mem_load_pdst;
+    if (reset) begin
+      stq_bus.pop <= 1'b0;
+    end else begin
+      stq_bus.pop <= pop_next;
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    if (reset) begin
+      rf_write_bus.en   <= 1'b0;
+      rf_write_bus.data <= 32'b0;
+      rf_write_bus.addr <= P0;
+    end else begin
+      rf_write_bus.en <= 1'b0;
+      if (ldq_bus.mem_load_valid) begin
+        rf_write_bus.en   <= 1'b1;
+        rf_write_bus.data <= mem_bus.rdata;
+        rf_write_bus.addr <= ldq_bus.mem_load_pdst;
+      end
     end
   end
 endmodule : LSU

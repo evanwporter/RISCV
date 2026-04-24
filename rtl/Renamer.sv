@@ -6,10 +6,10 @@ import riscv_decoder_types_pkg::*;
 module RegisterRenamer (
     input logic clk,
     input logic reset,
-    input free_list_t freed_list,
     input decoder_output_t decoder_out,
     output rat_output_t rat_out,
-    Writeback_if.Renamer_Side wb_bus
+    Writeback_if.Renamer_Side wb_bus,
+    Commit_if.Renamer_Side commit_bus
 );
 
   physical_reg_t [31:0] RAT;
@@ -42,6 +42,16 @@ module RegisterRenamer (
     return result;
   endfunction
 
+  function automatic free_list_t get_freed_list;
+    free_list_t freed_list = '0;
+    for (int i = 0; i < COMMIT_WIDTH; i++) begin
+      if (commit_bus.executed_op_valid[i]) begin
+        freed_list[commit_bus.executed_op_rob_idx[i]] = 1'b1;
+      end
+    end
+    return freed_list;
+  endfunction : get_freed_list
+
   logical_reg_t rs1, rs2;
 
   always_comb begin
@@ -69,7 +79,7 @@ module RegisterRenamer (
       if (decoder_out.valid) begin
         rat_out.advance_pipeline <= 1'b1;
 
-        free_list_next = free_list | freed_list;
+        free_list_next = free_list | get_freed_list();
 
         // Read sources
         rat_out.Ps1 <= RAT[rs1];

@@ -8,7 +8,7 @@ module ExecutionUnit (
     IssueQueue_if.Execution_Side alu_iq_bus,
     IssueQueue_if.Execution_Side mem_iq_bus,
 
-    ReorderBuffer_if.Exec_Side rob_bus,
+    Commit_if.Execution_Side commit_bus,
 
     STQ_if.Execution_side stq_bus,
 
@@ -53,7 +53,7 @@ module ExecutionUnit (
 
       alu_b_bus.en   = 1'b1;
       alu_b_bus.addr = alu_iq_bus.issue_entry.prs2;
-      alu_bus.op_b   = alu_b_bus.data;
+      alu_bus.op_b   = alu_uop.imm_kind == IMM_I ? alu_uop.imm : alu_b_bus.data;
     end
   end
 
@@ -118,22 +118,22 @@ module ExecutionUnit (
 
   always_ff @(posedge clk) begin
     if (reset) begin
-      rob_bus.executed_op_valid <= 1'b0;
+      commit_bus.executed_op_valid <= 1'b0;
     end else begin
-      rob_bus.executed_op_valid <= 1'b0;
+      commit_bus.executed_op_valid <= 1'b0;
 
       /// TODO: We need seperate buses
 
       // ALU completion
       if (alu_iq_bus.issue_valid) begin
-        rob_bus.executed_op_valid[0]   <= 1'b1;
-        rob_bus.executed_op_rob_idx[0] <= alu_iq_bus.issue_entry.rob_idx;
+        commit_bus.executed_op_valid[0]   <= 1'b1;
+        commit_bus.executed_op_rob_idx[0] <= alu_iq_bus.issue_entry.rob_idx;
       end
 
       // Store completion
       if (mem_iq_bus.issue_valid && mem_uop.is_store) begin
-        rob_bus.executed_op_valid[1]   <= 1'b1;
-        rob_bus.executed_op_rob_idx[1] <= mem_iq_bus.issue_entry.rob_idx;
+        commit_bus.executed_op_valid[1]   <= 1'b1;
+        commit_bus.executed_op_rob_idx[1] <= mem_iq_bus.issue_entry.rob_idx;
       end
     end
   end

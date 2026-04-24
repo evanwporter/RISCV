@@ -38,8 +38,6 @@ module ooo_tb;
 
   decoder_output_t decoder_out;
 
-  logic [NUM_PHYSICAL_REGS-1:0] freed_list;
-
   logic advance_pipeline;
 
   // Interfaces
@@ -49,6 +47,18 @@ module ooo_tb;
   Writeback_if wb_bus ();
   STQ_if stq_bus ();
   LDQ_if ldq_bus ();
+
+  Commit_if commit_bus ();
+
+  RF_Read_if execution_alu_read_A_bus ();
+  RF_Read_if execution_alu_read_B_bus ();
+  RF_Write_if execution_alu_write_bus ();
+
+  RF_Read_if execution_mem_read_A_bus ();
+  RF_Read_if execution_mem_read_B_bus ();
+  RF_Write_if execution_mem_write_B_bus ();
+
+  RF_Write_if lsu_write_bus ();
 
   Decoder decoder (
       .clk(clk),
@@ -60,11 +70,10 @@ module ooo_tb;
       .decoder_out(decoder_out)
   );
 
-  // DUTs
   RegisterRenamer renamer (
       .clk(clk),
       .reset(reset),
-      .freed_list(freed_list),
+      .commit_bus(commit_bus),
       .decoder_out(decoder_out),
       .rat_out(rat_out),
       .wb_bus(wb_bus)
@@ -95,24 +104,15 @@ module ooo_tb;
       .clk(clk),
       .reset(reset),
       .wb_bus(wb_bus),
+      .commit_bus(commit_bus),
       .bus(rob_bus),
       .stq_bus(stq_bus)
   );
 
-  RF_Read_if execution_alu_read_A_bus ();
-  RF_Read_if execution_alu_read_B_bus ();
-  RF_Write_if execution_alu_write_bus ();
-
-  RF_Read_if execution_mem_read_A_bus ();
-  RF_Read_if execution_mem_read_B_bus ();
-  RF_Write_if execution_mem_write_B_bus ();
-
-  RF_Write_if lsu_write_bus ();
-
   ExecutionUnit eu (
       .clk(clk),
       .reset(reset),
-      .rob_bus(rob_bus),
+      .commit_bus(commit_bus),
       .alu_iq_bus(alu_iq_bus),
       .alu_a_bus(execution_alu_read_A_bus),
       .alu_b_bus(execution_alu_read_B_bus),
@@ -194,7 +194,6 @@ module ooo_tb;
     clk = 0;
     reset = 1;
 
-    freed_list = '0;
     advance_pipeline = 0;
 
     repeat (2) @(posedge clk);
