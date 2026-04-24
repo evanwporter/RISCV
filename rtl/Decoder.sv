@@ -29,8 +29,12 @@ module Decoder (
       decoder_out.valid <= 1'b0;
       stq_bus.push <= 1'b0;
       if (advance_pipeline) begin
-        decoder_out.uop   <= uop_next;
-        decoder_out.valid <= uop_next.rd != P0;
+        decoder_out.uop <= uop_next;
+        decoder_out.valid <= uop_next.is_alu ||
+                             uop_next.is_load ||
+                             uop_next.is_store ||
+                             uop_next.is_branch ||
+                             uop_next.is_jump;
 
         if (decoded_IR.opcode == OP_S_TYPE) begin
           stq_bus.push <= 1'b1;

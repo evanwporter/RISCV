@@ -76,6 +76,7 @@ module ExecutionUnit (
         // else $error("Error: ALU is trying to write to P0, which should never happen");
 
         alu_write_bus.rob_idx <= alu_iq_bus.issue_entry.rob_idx;
+        alu_write_bus.PC <= alu_uop.pc;
         alu_write_bus.addr <= alu_iq_bus.issue_entry.pdst;
         alu_write_bus.data <= alu_bus.out;
       end

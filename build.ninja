@@ -1,19 +1,9 @@
-# ----------------------------------------
-# Config
-# ----------------------------------------
-
 as      = riscv-none-elf-as
 ld      = riscv-none-elf-ld
 objcopy = riscv-none-elf-objcopy
 python  = python
 
-name = sub
-src  = $name.s
 builddir = build
-
-# ----------------------------------------
-# Rules
-# ----------------------------------------
 
 rule assemble
   command = $as $in -o $out
@@ -31,11 +21,19 @@ rule bin_to_hex
   command = $python scripts/bin2hex.py $in $out
   description = BIN2HEX $out
 
-build $builddir/$name.o: assemble $src
-build $builddir/$name.elf: link $builddir/$name.o
-build $builddir/$name.bin: objcopy_bin $builddir/$name.elf
+build $builddir/sub.o: assemble sub.s
+build $builddir/sub.elf: link $builddir/sub.o
+build $builddir/sub.bin: objcopy_bin $builddir/sub.elf
+build sub.hex: bin_to_hex $builddir/sub.bin
 
-# Final output stays in root
-build $name.hex: bin_to_hex $builddir/$name.bin
+build $builddir/add.o: assemble add.s
+build $builddir/add.elf: link $builddir/add.o
+build $builddir/add.bin: objcopy_bin $builddir/add.elf
+build add.hex: bin_to_hex $builddir/add.bin
 
-default $name.hex
+build $builddir/ls.o: assemble ls.s
+build $builddir/ls.elf: link $builddir/ls.o
+build $builddir/ls.bin: objcopy_bin $builddir/ls.elf
+build ls.hex: bin_to_hex $builddir/ls.bin
+
+default sub.hex add.hex ls.hex

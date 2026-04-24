@@ -23,14 +23,18 @@ module Dispatcher (
       rob_bus.push_entry.new_dest = rat_out.Pd_new;
       rob_bus.push_entry.stq_idx_valid = rat_out.uop.is_store;
       rob_bus.push_entry.stq_idx = rat_out.stq_idx;
+      rob_bus.push_entry.PC = rat_out.uop.pc;
     end
+  end
+
+  always_comb begin
+    $display("RatOUT: uop pc=%0d", rat_out.uop.pc);
   end
 
   // ALU IQ entry construction
   always_comb begin
     alu_iq_bus.push = 0;
     alu_iq_bus.push_entry = '0;
-
 
     if (rat_out.advance_pipeline && (rat_out.uop.is_alu || rat_out.uop.is_branch)) begin
       alu_iq_bus.push = 1;

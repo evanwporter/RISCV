@@ -23,13 +23,13 @@ double sc_time_stamp() {
 
 void tick(Vbin* top, VerilatedVcdC* tfp, VerilatedContext* contextp) {
     // Clock low
-    top->clk = 0;
+    top->clk = 1;
     top->eval();
     tfp->dump(contextp->time());
     contextp->timeInc(5);
 
     // Clock high
-    top->clk = 1;
+    top->clk = 0;
     top->eval();
     tfp->dump(contextp->time());
     contextp->timeInc(5);
@@ -73,8 +73,7 @@ int main(int argc, char** argv) {
     // Run SV initial blocks first
     top->eval();
 
-    // Now overwrite instr memory from hex
-    load_hex_into_imem(top, fs::path(__FILE__).parent_path() / "and.hex");
+    load_hex_into_imem(top, "add.hex");
 
     auto tfp = new VerilatedVcdC;
     top->trace(tfp, 99);
@@ -86,24 +85,42 @@ int main(int argc, char** argv) {
 
     int max_cycles = 200;
 
+    top->clk = 0;
     top->reset = 1;
-    tick(top, tfp, contextp);
-    top->reset = 0;
     top->eval();
+    tfp->dump(contextp->time());
+    contextp->timeInc(5);
+
+    top->clk = 1;
+    top->eval();
+    tfp->dump(contextp->time());
+    contextp->timeInc(5);
+
+    top->clk = 0;
+    top->eval();
+    tfp->dump(contextp->time());
+    contextp->timeInc(5);
+
+    top->reset = 0;
 
     while (!contextp->gotFinish() && contextp->time() < max_cycles * 10) {
         tick(top, tfp, contextp);
 
-        auto regs = top->rootp->bin_top_tb__DOT__dut__DOT__rf__DOT__regs;
-        uint32_t x10 = regs[10];
+        auto root = top->rootp;
 
-        if (x10 == 1) {
+        auto regs = root->bin_top_tb__DOT__dut__DOT__rf__DOT__regs;
+        auto rat = root->bin_top_tb__DOT__dut__DOT__renamer__DOT__RAT;
+
+        uint32_t phys_idx = rat[10];
+        int32_t x10 = regs[phys_idx];
+
+        if (x10 == -1) {
             VL_PRINTF("PASS at time %llu\n", contextp->time());
             break;
         }
 
-        if (x10 != 0 && x10 != 1) {
-            VL_PRINTF("FAIL: test %u at time %llu\n", x10, contextp->time());
+        if (x10 != 0 && x10 != -1) {
+            VL_PRINTF("FAIL: test %d at time %llu\n", x10, contextp->time());
             break;
         }
     }
@@ -111,6 +128,8 @@ int main(int argc, char** argv) {
     if (!contextp->gotFinish()) {
         VL_PRINTF("TIMEOUT\n");
     }
+
+    VL_PRINTF("TIMEOUT\n");
 
     top->final();
 

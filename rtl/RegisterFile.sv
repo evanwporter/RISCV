@@ -43,6 +43,7 @@ module RegisterFile (
         wb_bus.valid <= 1;
         wb_bus.pdst <= execution_write_bus.addr;
         wb_bus.rob_idx <= execution_write_bus.rob_idx;
+        wb_bus.PC <= execution_write_bus.PC;
         if (execution_write_bus.addr != P0) begin
           regs[execution_write_bus.addr] <= execution_write_bus.data;
         end
