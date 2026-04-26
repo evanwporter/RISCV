@@ -9,7 +9,7 @@ module MockInstructionMemory (
   word_t mem[256];
 
   initial begin
-    $readmemh("sub.hex", mem);
+    $readmemh("ls.hex", mem);
   end
 
   always_comb begin
@@ -27,7 +27,7 @@ module bin_top_tb;
 
   // Clock
   initial clk = 0;
-  always #5 clk = ~clk;  // 100MHz
+  always #5 clk = ~clk;
 
   // DUT
   RISCV dut (

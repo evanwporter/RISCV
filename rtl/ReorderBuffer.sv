@@ -6,8 +6,7 @@ module ReorderBuffer (
     input logic reset,
 
     ReorderBuffer_if.ROB_Side bus,
-    Commit_if.ROB_Side commit_bus,
-    STQ_if.ROB_side stq_bus
+    Commit_if.ROB_Side commit_bus
 );
 
   ROB_entry_t rob_entries[ROB_WIDTH];
@@ -48,8 +47,6 @@ module ReorderBuffer (
         end
       end
 
-      stq_bus.commit <= 1'b0;
-
       // Commit (keep popping entries starting from head until we get to a not busy entry)
       for (i = 0; i < COMMIT_WIDTH; i++) begin
         idx = head + i;
@@ -61,12 +58,6 @@ module ReorderBuffer (
           commit_bus.committed_rob_entries[i] <= rob_entries[idx];
 
           rob_entries[idx].valid <= 1'b0;
-
-          // TODO: Handle multiple commits per cycle
-          if (rob_entries[idx].stq_idx_valid) begin
-            stq_bus.commit <= 1'b1;
-            stq_bus.commit_idx <= rob_entries[idx].stq_idx;
-          end
 
           commit_count++;
 

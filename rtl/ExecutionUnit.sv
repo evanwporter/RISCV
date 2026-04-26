@@ -11,6 +11,8 @@ module ExecutionUnit (
 
     Commit_if.Execution_Side commit_bus,
 
+    output branch_info_t branch_info,
+
     STQ_if.Execution_side stq_bus,
 
     RF_Read_if.User_side  alu_a_bus,
@@ -85,22 +87,23 @@ module ExecutionUnit (
 
   always_ff @(posedge clk) begin
     if (reset) begin
-      commit_bus.branch_valid  <= 1'b0;
-      commit_bus.branch_taken  <= 1'b0;
-      commit_bus.branch_target <= '0;
+      branch_info.valid  <= 1'b0;
+      branch_info.taken  <= 1'b0;
+      branch_info.target <= '0;
     end else begin
-      commit_bus.branch_valid <= 1'b0;
-      commit_bus.branch_taken <= 1'b0;
+      branch_info.valid  <= 1'b0;
+      branch_info.taken  <= 1'b0;
+      branch_info.target <= '0;
 
       if (branch_exec) begin
-        commit_bus.branch_valid  <= 1'b1;
-        commit_bus.branch_target <= alu_uop.pc + alu_uop.imm;
+        branch_info.valid  <= 1'b1;
+        branch_info.target <= alu_uop.pc + alu_uop.imm;
 
         case (alu_uop.branch_op)
-          BRANCH_EQ: commit_bus.branch_taken <= (alu_bus.op_a == alu_bus.op_b);
-          BRANCH_NEQ: commit_bus.branch_taken <= (alu_bus.op_a != alu_bus.op_b);
+          BRANCH_EQ: branch_info.taken <= (alu_bus.op_a == alu_bus.op_b);
+          BRANCH_NEQ: branch_info.taken <= (alu_bus.op_a != alu_bus.op_b);
           // TODO: extend
-          default: commit_bus.branch_taken <= 1'b0;
+          default: branch_info.taken <= 1'b0;
         endcase
       end
     end
@@ -147,8 +150,8 @@ module ExecutionUnit (
         stq_bus.write_data_idx = mem_iq_bus.issue_entry.stq_idx;
         stq_bus.write_data_value = mem_b_bus.data;
       end else if (mem_uop.is_load) begin
+        // TODO: Loads
         // Load: just compute address (goes to LDQ, not STQ)
-        // You’ll later hook this to LDQ instead
       end
     end
   end
@@ -158,8 +161,6 @@ module ExecutionUnit (
       commit_bus.executed_op_valid <= 1'b0;
     end else begin
       commit_bus.executed_op_valid <= 1'b0;
-
-      /// TODO: We need seperate buses
 
       // ALU completion
       if (alu_iq_bus.issue_valid) begin

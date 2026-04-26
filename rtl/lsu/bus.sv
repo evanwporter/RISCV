@@ -62,23 +62,12 @@ interface STQ_if;
   /// Data to send to memory for the head store
   word_t mem_store_data;
 
-  // ----------------------------
-  // Commit from ROB
-  // ----------------------------
-
-  // ROB commit says this store is now architecturally committed
-  logic commit;
-
-  /// Index of the store in the STQ being committed (from the ROB)
-  logic [IDX_W-1:0] commit_idx;
-
   modport Decoder_side(input tail_idx, output push);
 
   modport STQ_side(
       input push, pop,
       input write_addr, write_addr_idx, write_addr_value,
       input write_data, write_data_idx, write_data_value,
-      input commit, commit_idx,
       output full, empty,
       output entries,
       output valid_mask,
@@ -87,8 +76,6 @@ interface STQ_if;
   );
 
   modport LSU_side(input mem_store_valid, mem_store_addr, mem_store_data, output pop);
-
-  modport ROB_side(output commit, commit_idx);
 
   modport Execution_side(
       output write_addr,

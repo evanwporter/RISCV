@@ -6,7 +6,8 @@ module STQ (
     input logic clk,
     input logic reset,
 
-    STQ_if.STQ_side bus
+    STQ_if.STQ_side bus,
+    Commit_if.STQ_Side commit_bus
 );
 
   stq_entry_t entries[STQ_WIDTH];
@@ -73,8 +74,10 @@ module STQ (
       end
 
       // Commit from ROB
-      if (bus.commit) begin
-        entries[bus.commit_idx].committed <= 1'b1;
+      for (int j = 0; j < COMMIT_WIDTH; j++) begin
+        if (commit_bus.committed_rob_entries[j].valid && commit_bus.committed_rob_entries[j].stq_idx_valid) begin
+          entries[commit_bus.committed_rob_entries[j].stq_idx].committed <= 1'b1;
+        end
       end
 
       // Fire oldest ready/committed store in program order

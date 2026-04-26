@@ -40,6 +40,8 @@ module RISCV (
 
   logic advance_pipeline;
 
+  branch_info_t branch_info;
+
   assign instruction_mem_bus.addr = PC;
   assign instruction_mem_bus.read_en = advance_pipeline;
 
@@ -60,8 +62,8 @@ module RISCV (
     if (reset) begin
       PC <= '0;
     end else begin
-      if (commit_bus.branch_valid && commit_bus.branch_taken) begin
-        PC <= commit_bus.branch_target;  // redirect
+      if (branch_info.valid && branch_info.taken) begin
+        PC <= branch_info.target;  // redirect
       end else if (advance_pipeline) begin
         PC <= PC + 4;
       end
@@ -80,7 +82,7 @@ module RISCV (
     end else begin
       if (branch_detected) begin
         pipeline_stalled <= 1'b1;
-      end else if (commit_bus.branch_valid) begin
+      end else if (branch_info.valid) begin
         pipeline_stalled <= 1'b0;
       end
     end
@@ -130,8 +132,7 @@ module RISCV (
       .clk(clk),
       .reset(reset),
       .commit_bus(commit_bus),
-      .bus(rob_bus),
-      .stq_bus(stq_bus)
+      .bus(rob_bus)
   );
 
   ExecutionUnit eu (
@@ -146,7 +147,8 @@ module RISCV (
       .mem_a_bus(execution_mem_read_A_bus),
       .mem_b_bus(execution_mem_read_B_bus),
       .mem_write_bus(execution_mem_write_B_bus),
-      .stq_bus(stq_bus)
+      .stq_bus(stq_bus),
+      .branch_info(branch_info)
   );
 
   RegisterFile rf (
@@ -162,9 +164,10 @@ module RISCV (
   );
 
   STQ stq (
-      .clk  (clk),
+      .clk(clk),
       .reset(reset),
-      .bus  (stq_bus)
+      .bus(stq_bus),
+      .commit_bus(commit_bus)
   );
 
   LDQ ldq (

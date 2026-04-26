@@ -116,11 +116,15 @@ package riscv_regs_types_pkg;
     /// Register getting written back to.
     physical_reg_t pdst;
 
-    logic [ROB_IDX_WIDTH-1:0] rob_idx;
-
     // For debugging purposes
     addr_t PC;
   } writeback_t;
+
+  typedef struct packed {
+    logic  valid;
+    logic  taken;
+    addr_t target;
+  } branch_info_t;
 
   typedef logic [riscv_constants_pkg::NUM_PHYSICAL_REGS-1:0] free_list_t;
 endpackage : riscv_regs_types_pkg

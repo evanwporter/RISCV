@@ -37,10 +37,6 @@ interface Commit_if;
   logic [ROB_IDX_WIDTH-1:0] executed_op_rob_idx[COMMIT_WIDTH-1:0];
   physical_reg_t executed_op_pdst[COMMIT_WIDTH-1:0];
 
-  logic branch_valid;
-  logic branch_taken;
-  addr_t branch_target;
-
   ROB_entry_t committed_rob_entries[COMMIT_WIDTH-1:0];
 
   modport ROB_Side(
@@ -49,13 +45,11 @@ interface Commit_if;
       output committed_rob_entries
   );
 
-  modport Execution_Side(
-      output executed_op_valid, executed_op_rob_idx,
-      output branch_valid, branch_taken, branch_target,
-      output executed_op_pdst
-  );
+  modport Execution_Side(output executed_op_valid, executed_op_rob_idx, output executed_op_pdst);
 
   modport Renamer_Side(input committed_rob_entries);
+
+  modport STQ_Side(input committed_rob_entries);
 
 endinterface : Commit_if
 
