@@ -119,6 +119,12 @@ module ExecutionUnit (
     stq_bus.write_data_idx = '0;
     stq_bus.write_data_value = '0;
 
+    mem_a_bus.en = 1'b0;
+    mem_a_bus.addr = P0;
+
+    mem_b_bus.en = 1'b0;
+    mem_b_bus.addr = P0;
+
     if (mem_iq_bus.issue_valid) begin
       // Common: base = rs1
       mem_a_bus.en   = 1'b1;

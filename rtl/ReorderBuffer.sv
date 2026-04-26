@@ -5,7 +5,6 @@ module ReorderBuffer (
     input logic clk,
     input logic reset,
 
-    Writeback_if.ROB_Side wb_bus,
     ReorderBuffer_if.ROB_Side bus,
     Commit_if.ROB_Side commit_bus,
     STQ_if.ROB_side stq_bus

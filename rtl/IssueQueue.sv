@@ -59,12 +59,23 @@ module IssueQueue (
       end
 
       // Wakeup (broadcast)
-      if (wb_bus.valid) begin
-        /// Find all regs waiting on this dst reg and mark them ready
+      if (wb_bus.alu_writeback.valid) begin
+        // Find all regs waiting on this dst reg and mark them ready
         for (int i = 0; i < IQ_WIDTH; i++) begin
           if (entries[i].valid) begin
-            if (entries[i].prs1 == wb_bus.pdst) entries[i].prs1_ready <= 1'b1;
-            if (entries[i].prs2 == wb_bus.pdst) entries[i].prs2_ready <= 1'b1;
+            if (entries[i].prs1 == wb_bus.alu_writeback.pdst) entries[i].prs1_ready <= 1'b1;
+            if (entries[i].prs2 == wb_bus.alu_writeback.pdst) entries[i].prs2_ready <= 1'b1;
+          end
+        end
+      end
+
+      // Wakeup (broadcast)
+      if (wb_bus.mem_writeback.valid) begin
+        // Find all regs waiting on this dst reg and mark them ready
+        for (int i = 0; i < IQ_WIDTH; i++) begin
+          if (entries[i].valid) begin
+            if (entries[i].prs1 == wb_bus.mem_writeback.pdst) entries[i].prs1_ready <= 1'b1;
+            if (entries[i].prs2 == wb_bus.mem_writeback.pdst) entries[i].prs2_ready <= 1'b1;
           end
         end
       end

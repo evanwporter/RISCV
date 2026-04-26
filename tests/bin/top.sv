@@ -9,7 +9,7 @@ module MockInstructionMemory (
   word_t mem[256];
 
   initial begin
-    $readmemh("ls.hex", mem);
+    $readmemh("sub.hex", mem);
   end
 
   always_comb begin
@@ -80,7 +80,7 @@ module bin_top_tb;
         $finish;
       end
 
-      if (cycle > 20) begin
+      if (cycle > 200) begin
         $display("TIMEOUT");
         $finish;
       end

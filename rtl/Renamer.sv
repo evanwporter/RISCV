@@ -102,8 +102,12 @@ module RegisterRenamer (
         rat_out.Ps1_ready <= uop.has_rs1 ? ~busy_list[RAT[rs1]] : 1'b1;
         rat_out.Ps2_ready <= uop.has_rs2 ? ~busy_list[RAT[rs2]] : 1'b1;
 
-        if (wb_bus.valid) begin
-          busy_list[wb_bus.pdst] <= 1'b0;
+        if (wb_bus.alu_writeback.valid) begin
+          busy_list[wb_bus.alu_writeback.pdst] <= 1'b0;
+        end
+
+        if (wb_bus.mem_writeback.valid) begin
+          busy_list[wb_bus.mem_writeback.pdst] <= 1'b0;
         end
 
         if (uop.has_rd) begin

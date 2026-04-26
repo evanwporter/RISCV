@@ -1,3 +1,6 @@
+import riscv_types_pkg::*;
+import riscv_constants_pkg::*;
+
 package riscv_regs_types_pkg;
 
   typedef enum logic [5:0] {
@@ -105,6 +108,19 @@ package riscv_regs_types_pkg;
   typedef logic [4:0] logical_reg_addr_t;
 
   typedef logic [5:0] physical_reg_addr_t;
+
+  typedef struct packed {
+    logic valid;
+
+    /// Physical Register Destination (for writeback)
+    /// Register getting written back to.
+    physical_reg_t pdst;
+
+    logic [ROB_IDX_WIDTH-1:0] rob_idx;
+
+    // For debugging purposes
+    addr_t PC;
+  } writeback_t;
 
   typedef logic [riscv_constants_pkg::NUM_PHYSICAL_REGS-1:0] free_list_t;
 endpackage : riscv_regs_types_pkg

@@ -100,24 +100,15 @@ endinterface : ReorderBuffer_if
 /// TODO: Need to be expanded to account for the multiple ports of the RF
 /// The size will be COMMIT_WIDTH
 interface Writeback_if;
-  logic valid;
 
-  /// Physical Register Destination (for writeback)
-  /// Register getting written back to.
-  physical_reg_t pdst;
+  writeback_t alu_writeback;
+  writeback_t mem_writeback;
 
-  logic [ROB_IDX_WIDTH-1:0] rob_idx;
+  modport Renamer_Side(input alu_writeback, input mem_writeback);
 
-  // For debugging purposes
-  addr_t PC;
+  modport IQ_Side(input alu_writeback, input mem_writeback);
 
-  modport Renamer_Side(input valid, input pdst);
-
-  modport ROB_Side(input valid, input pdst, input rob_idx);
-
-  modport IQ_Side(input valid, input pdst);
-
-  modport RegisterFile_Side(output valid, output pdst, output rob_idx, output PC);
+  modport RegisterFile_Side(output alu_writeback, output mem_writeback);
 endinterface : Writeback_if
 
 interface ALU_if;

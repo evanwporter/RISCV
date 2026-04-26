@@ -4,4 +4,4 @@ build/
 .mypy_cache/
 .cache/
 *.surf.ron
-.hex
+*.hex

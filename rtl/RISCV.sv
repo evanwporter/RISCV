@@ -129,7 +129,6 @@ module RISCV (
   ReorderBuffer rob (
       .clk(clk),
       .reset(reset),
-      .wb_bus(wb_bus),
       .commit_bus(commit_bus),
       .bus(rob_bus),
       .stq_bus(stq_bus)
@@ -154,9 +153,12 @@ module RISCV (
       .clk(clk),
       .reset(reset),
       .wb_bus(wb_bus),
-      .execution_read_A_bus(execution_alu_read_A_bus),
-      .execution_read_B_bus(execution_alu_read_B_bus),
-      .execution_write_bus(execution_alu_write_bus)
+      .alu_read_A_bus(execution_alu_read_A_bus),
+      .alu_read_B_bus(execution_alu_read_B_bus),
+      .alu_write_bus(execution_alu_write_bus),
+      .mem_read_A_bus(execution_mem_read_A_bus),
+      .mem_read_B_bus(execution_mem_read_B_bus),
+      .mem_write_bus(execution_mem_write_B_bus)
   );
 
   STQ stq (
