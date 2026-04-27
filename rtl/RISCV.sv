@@ -27,7 +27,6 @@ module RISCV (
 
   RF_Read_if execution_mem_read_A_bus ();
   RF_Read_if execution_mem_read_B_bus ();
-  RF_Write_if execution_mem_write_B_bus ();
 
   RF_Write_if lsu_write_bus ();
 
@@ -146,8 +145,8 @@ module RISCV (
       .mem_iq_bus(mem_iq_bus),
       .mem_a_bus(execution_mem_read_A_bus),
       .mem_b_bus(execution_mem_read_B_bus),
-      .mem_write_bus(execution_mem_write_B_bus),
       .stq_bus(stq_bus),
+      .ldq_bus(ldq_bus),
       .branch_info(branch_info)
   );
 
@@ -160,7 +159,7 @@ module RISCV (
       .alu_write_bus(execution_alu_write_bus),
       .mem_read_A_bus(execution_mem_read_A_bus),
       .mem_read_B_bus(execution_mem_read_B_bus),
-      .mem_write_bus(execution_mem_write_B_bus)
+      .mem_write_bus(lsu_write_bus)
   );
 
   STQ stq (
@@ -171,9 +170,11 @@ module RISCV (
   );
 
   LDQ ldq (
-      .clk  (clk),
+      .clk(clk),
       .reset(reset),
-      .bus  (ldq_bus)
+      .bus(ldq_bus),
+      .stq_bus(stq_bus),
+      .rat_out(rat_out)
   );
 
   LSU lsu (

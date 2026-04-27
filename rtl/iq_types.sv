@@ -32,5 +32,7 @@ package riscv_iq_types_pkg;
 
     logic [STQ_IDX_WIDTH-1:0] stq_idx;
 
+    logic [LDQ_IDX_WIDTH-1:0] ldq_idx;
+
   } IQ_entry_t;
 endpackage : riscv_iq_types_pkg

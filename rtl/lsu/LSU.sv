@@ -24,13 +24,13 @@ module LSU (
 
     if (stq_bus.mem_store_valid) begin
       mem_bus.write_en = 1'b1;
-      mem_bus.addr     = stq_bus.mem_store_addr;
-      mem_bus.wdata    = stq_bus.mem_store_data;
+      mem_bus.addr = stq_bus.mem_store_addr;
+      mem_bus.wdata = stq_bus.mem_store_data;
 
-      pop_next         = 1'b1;  // request pop NEXT cycle
+      pop_next = 1'b1;  // request pop NEXT cycle
     end else if (ldq_bus.mem_load_valid) begin
       mem_bus.read_en = 1'b1;
-      mem_bus.addr    = ldq_bus.mem_load_addr;
+      mem_bus.addr = ldq_bus.mem_load_addr;
     end
   end
 

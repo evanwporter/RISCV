@@ -12,8 +12,6 @@ module STQ (
 
   stq_entry_t entries[STQ_WIDTH];
 
-  /// Head represents the oldest store in the queue, and only it may fire (pop from queue and send to memory)
-  logic [STQ_IDX_WIDTH-1:0] head_idx;
 
   /// Count of valid entries in the queue
   logic [STQ_IDX_WIDTH:0] count;
@@ -26,14 +24,14 @@ module STQ (
   // but for now we require an extra cycle to pop before pushing
   wire head_can_fire =
       !bus.pop && 
-      entries[head_idx].valid &&
-      entries[head_idx].committed &&
-      entries[head_idx].addr_valid &&
-      entries[head_idx].data_valid;
+      entries[bus.head_idx].valid &&
+      entries[bus.head_idx].committed &&
+      entries[bus.head_idx].addr_valid &&
+      entries[bus.head_idx].data_valid;
 
   assign bus.mem_store_valid = head_can_fire;
-  assign bus.mem_store_addr  = entries[head_idx].addr;
-  assign bus.mem_store_data  = entries[head_idx].data;
+  assign bus.mem_store_addr  = entries[bus.head_idx].addr;
+  assign bus.mem_store_data  = entries[bus.head_idx].data;
 
   genvar i;
   generate
@@ -46,7 +44,7 @@ module STQ (
   integer k;
   always_ff @(posedge clk) begin
     if (reset) begin
-      head_idx <= '0;
+      bus.head_idx <= '0;
       bus.tail_idx <= '0;
       count <= '0;
       for (k = 0; k < STQ_WIDTH; k++) begin
@@ -82,8 +80,8 @@ module STQ (
 
       // Fire oldest ready/committed store in program order
       if (bus.pop) begin
-        entries[head_idx] <= '0;
-        head_idx <= head_idx + 1'b1;
+        entries[bus.head_idx] <= '0;
+        bus.head_idx <= bus.head_idx + 1'b1;
         count <= count - 1'b1;
       end
     end

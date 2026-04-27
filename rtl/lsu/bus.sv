@@ -23,6 +23,10 @@ interface STQ_if;
   /// Recorded by the decoder and used to track the STQ entry in the memory IQ.
   logic [IDX_W-1:0] tail_idx;
 
+  /// Head pointer for the next entry to be popped from the STQ
+  /// Head represents the oldest store in the queue, and only it may fire (pop from queue and send to memory)
+  logic [IDX_W-1:0] head_idx;
+
   // -------------------------
   // Record Store Address
   // -------------------------
@@ -71,11 +75,13 @@ interface STQ_if;
       output full, empty,
       output entries,
       output valid_mask,
-      output tail_idx,
+      output tail_idx, head_idx,
       output mem_store_valid, mem_store_addr, mem_store_data
   );
 
   modport LSU_side(input mem_store_valid, mem_store_addr, mem_store_data, output pop);
+
+  modport LDQ_side(input entries, input pop, head_idx);
 
   modport Execution_side(
       output write_addr,
@@ -93,23 +99,17 @@ interface LDQ_if;
   /// Decode allocation
   logic push;
 
+  physical_reg_t pdst;
+
   logic pop;
 
   logic write_addr;
   logic [LDQ_IDX_WIDTH-1:0] write_addr_idx;
   addr_t write_addr_value;
 
-  stq_entry_t stq_entries[STQ_WIDTH];
-
   /// Tail pointer for the next available slot in the LDQ
   /// Recorded by the decoder and used to track the LDQ entry in the memory IQ.
   logic [LDQ_IDX_WIDTH-1:0] tail_idx;
-
-  /// Whether a store has been cleared from the STQ
-  logic store_cleared;
-
-  /// Index of the store cleared from the STQ (for clearing dep bits)
-  logic [STQ_IDX_WIDTH-1:0] store_cleared_idx;
 
   // ----------------------------
   // Memory Output
@@ -123,18 +123,17 @@ interface LDQ_if;
 
   physical_reg_t mem_load_pdst;
 
-
-  modport Decoder_side(input tail_idx, output push);
+  modport Decoder_side(input tail_idx, output push, pdst);
 
   modport LSU_side(input mem_load_valid, mem_load_addr, mem_load_pdst);
 
   modport LDQ_side(
-      input push, pop,
+      input push, pdst, pop,
       input write_addr, write_addr_idx, write_addr_value,
-      input stq_entries,
-      input store_cleared, store_cleared_idx,
       output mem_load_valid, mem_load_addr, mem_load_pdst,
       output tail_idx
   );
+
+  modport Execution_side(output write_addr, output write_addr_idx, output write_addr_value);
 
 endinterface : LDQ_if

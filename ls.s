@@ -4,10 +4,10 @@
 _start:
 
   # PC = 0
-  addi x1, x0, 42
+  addi x1, x0, 42 # load data value to store
 
   # PC = 4
-  addi x2, x0, 0
+  addi x2, x0, 32 # set address to store to and load from
 
   # PC = 8
   sw x1, 0(x2) # store 42 at address 0

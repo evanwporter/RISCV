@@ -30,6 +30,18 @@ module RegisterFile (
     end
   end
 
+  always_comb begin
+    mem_read_A_bus.data = 32'd0;
+    if (mem_read_A_bus.en) begin
+      mem_read_A_bus.data = regs[mem_read_A_bus.addr];
+    end
+
+    mem_read_B_bus.data = 32'd0;
+    if (mem_read_B_bus.en) begin
+      mem_read_B_bus.data = regs[mem_read_B_bus.addr];
+    end
+  end
+
   // Synchronous write + reset
   always_ff @(posedge clk) begin
     if (reset) begin
@@ -48,6 +60,18 @@ module RegisterFile (
         wb_bus.alu_writeback.PC <= alu_write_bus.PC;
         if (alu_write_bus.addr != P0) begin
           regs[alu_write_bus.addr] <= alu_write_bus.data;
+        end
+      end
+
+      wb_bus.mem_writeback.valid <= 0;
+      wb_bus.mem_writeback.pdst  <= P0;
+      if (mem_write_bus.en) begin
+        wb_bus.mem_writeback.valid <= 1;
+        wb_bus.mem_writeback.pdst <= mem_write_bus.addr;
+        wb_bus.mem_writeback.PC <= mem_write_bus.PC;
+
+        if (mem_write_bus.addr != P0) begin
+          regs[mem_write_bus.addr] <= mem_write_bus.data;
         end
       end
     end

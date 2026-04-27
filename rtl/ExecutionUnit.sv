@@ -14,14 +14,14 @@ module ExecutionUnit (
     output branch_info_t branch_info,
 
     STQ_if.Execution_side stq_bus,
+    LDQ_if.Execution_side ldq_bus,
 
     RF_Read_if.User_side  alu_a_bus,
     RF_Read_if.User_side  alu_b_bus,
     RF_Write_if.User_side alu_write_bus,
 
-    RF_Read_if.User_side  mem_a_bus,
-    RF_Read_if.User_side  mem_b_bus,
-    RF_Write_if.User_side mem_write_bus
+    RF_Read_if.User_side mem_a_bus,
+    RF_Read_if.User_side mem_b_bus
 );
 
   ALU_if alu_bus ();
@@ -122,6 +122,10 @@ module ExecutionUnit (
     stq_bus.write_data_idx = '0;
     stq_bus.write_data_value = '0;
 
+    ldq_bus.write_addr = 1'b0;
+    ldq_bus.write_addr_idx = '0;
+    ldq_bus.write_addr_value = '0;
+
     mem_a_bus.en = 1'b0;
     mem_a_bus.addr = P0;
 
@@ -150,8 +154,9 @@ module ExecutionUnit (
         stq_bus.write_data_idx = mem_iq_bus.issue_entry.stq_idx;
         stq_bus.write_data_value = mem_b_bus.data;
       end else if (mem_uop.is_load) begin
-        // TODO: Loads
-        // Load: just compute address (goes to LDQ, not STQ)
+        ldq_bus.write_addr = 1'b1;
+        ldq_bus.write_addr_idx = mem_iq_bus.issue_entry.ldq_idx;
+        ldq_bus.write_addr_value = agu_bus.addr;
       end
     end
   end

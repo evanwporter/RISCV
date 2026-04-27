@@ -1,12 +1,15 @@
 import riscv_types_pkg::*;
 import riscv_lsu_types_pkg::*;
 import riscv_constants_pkg::*;
+import riscv_decoder_types_pkg::*;
 
 module LDQ (
     input logic clk,
     input logic reset,
 
-    LDQ_if.LDQ_side bus
+    LDQ_if.LDQ_side bus,
+    STQ_if.STQ_side stq_bus,
+    input rat_output_t rat_out
 );
 
   ldq_entry_t entries[LDQ_WIDTH];
@@ -21,7 +24,7 @@ module LDQ (
 
   always_comb begin
     for (int i = 0; i < STQ_WIDTH; i++) begin
-      stq_dep_mask[i] = bus.stq_entries[i].valid;
+      stq_dep_mask[i] = stq_bus.entries[i].valid;
     end
   end
 
@@ -44,9 +47,9 @@ module LDQ (
       end
 
       // Clear dep bit when a store leaves STQ
-      if (bus.store_cleared) begin
+      if (stq_bus.pop) begin
         for (k = 0; k < LDQ_WIDTH; k++) begin
-          entries[k].st_dep_mask[bus.store_cleared_idx] <= 1'b0;
+          entries[k].st_dep_mask[stq_bus.head_idx] <= 1'b0;
         end
       end
 
@@ -57,11 +60,22 @@ module LDQ (
       end
 
       // Find entries ready to be loaded
+      bus.mem_load_valid <= 1'b0;
+      bus.mem_load_addr  <= '0;
       for (int i = 0; i < LDQ_WIDTH; i++) begin
-        if (entries[i].st_dep_mask == '0 && entries[i].addr_valid) begin
+        if (entries[i].valid && entries[i].st_dep_mask == '0 && entries[i].addr_valid) begin
           bus.mem_load_valid <= 1'b1;
           bus.mem_load_addr  <= entries[i].addr;
+          bus.mem_load_pdst  <= entries[i].pdst;
+
+          // TODO: maybe we want to keep this valid until its committed/load completes
+          entries[i].valid   <= 1'b0;
+          break;
         end
+      end
+
+      if (rat_out.uop.is_load) begin
+        entries[rat_out.ldq_idx].pdst <= rat_out.Pd_new;
       end
     end
   end

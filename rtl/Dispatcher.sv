@@ -59,7 +59,7 @@ module Dispatcher (
     mem_iq_bus.push = 0;
     mem_iq_bus.push_entry = '0;
 
-    if (rat_out.advance_pipeline && rat_out.uop.is_store) begin
+    if (rat_out.advance_pipeline && (rat_out.uop.is_store || rat_out.uop.is_load)) begin
       mem_iq_bus.push = 1;
 
       mem_iq_bus.push_entry.valid = 1;
@@ -76,6 +76,7 @@ module Dispatcher (
       mem_iq_bus.push_entry.rob_idx = rob_bus.tail_ptr;
 
       mem_iq_bus.push_entry.stq_idx = rat_out.stq_idx;
+      mem_iq_bus.push_entry.ldq_idx = rat_out.ldq_idx;
     end
   end
 
