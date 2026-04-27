@@ -131,5 +131,10 @@ package riscv_regs_types_pkg;
     logic [ROB_IDX_WIDTH-1:0] rob_idx;
   } branch_info_t;
 
+  typedef struct packed {
+    logic valid;
+    logic [ROB_IDX_WIDTH-1:0] rob_idx;
+  } flush_t;
+
   typedef logic [riscv_constants_pkg::NUM_PHYSICAL_REGS-1:0] free_list_t;
 endpackage : riscv_regs_types_pkg

@@ -1,12 +1,14 @@
 import riscv_iq_types_pkg::*;
 import riscv_constants_pkg::*;
+import riscv_regs_types_pkg::*;
+import riscv_util_pkg::*;
 
 module IssueQueue (
     input logic clk,
     input logic reset,
-
+    input flush_t flush_info,
     IssueQueue_if.IQ_Side bus,
-    Writeback_if.IQ_Side  wb_bus
+    Writeback_if.IQ_Side wb_bus
 );
 
   IQ_entry_t entries[IQ_WIDTH];
@@ -42,6 +44,15 @@ module IssueQueue (
     if (reset) begin
       for (int i = 0; i < IQ_WIDTH; i++) begin
         entries[i] <= '0;
+      end
+    end else if (flush_info.valid) begin
+      for (int i = 0; i < IQ_WIDTH; i++) begin
+        if (entries[i].valid) begin
+          /// We invalidate all entries younger than the flush entry
+          if (is_younger(entries[i].rob_idx, flush_info.rob_idx)) begin
+            entries[i].valid <= 1'b0;
+          end
+        end
       end
     end else begin
 

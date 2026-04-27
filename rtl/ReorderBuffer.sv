@@ -1,9 +1,13 @@
 import riscv_rob_types_pkg::*;
 import riscv_constants_pkg::*;
+import riscv_regs_types_pkg::*;
+import riscv_util_pkg::*;
 
 module ReorderBuffer (
     input logic clk,
     input logic reset,
+
+    input flush_t flush_info,
 
     ReorderBuffer_if.ROB_Side bus,
     Commit_if.ROB_Side commit_bus
@@ -36,6 +40,24 @@ module ReorderBuffer (
 
       for (int j = 0; j < ROB_WIDTH; j++) begin
         rob_entries[j] <= '0;
+      end
+
+    end else if (flush_info.valid) begin
+      // Invalidate younger entries
+      for (int i = 0; i < ROB_WIDTH; i++) begin
+        if (rob_entries[i].valid) begin
+          if (is_younger(i[ROB_IDX_WIDTH-1:0], flush_info.rob_idx)) begin
+            rob_entries[i].valid <= 1'b0;
+          end
+        end
+      end
+
+      // Rewind tail to just after branch
+      tail <= flush_info.rob_idx + 1;
+
+      // Stop commit this cycle
+      for (int i = 0; i < COMMIT_WIDTH; i++) begin
+        commit_bus.committed_rob_entries[i] <= '0;
       end
 
     end else begin

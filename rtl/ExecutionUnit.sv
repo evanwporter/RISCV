@@ -6,6 +6,8 @@ module ExecutionUnit (
     input logic clk,
     input logic reset,
 
+    input flush_t flush_info,
+
     IssueQueue_if.Execution_Side alu_iq_bus,
     IssueQueue_if.Execution_Side mem_iq_bus,
 
@@ -64,10 +66,6 @@ module ExecutionUnit (
   wire  branch_exec = alu_iq_bus.issue_valid && alu_uop.is_branch;
 
   logic branch_taken;
-  assign branch_taken = branch_exec && (
-      (alu_uop.branch_op == BRANCH_EQ && alu_bus.out == 1) ||
-      (alu_uop.branch_op == BRANCH_NEQ && alu_bus.out == 0)
-    );
 
   logic mispredict;
   assign mispredict =
@@ -77,6 +75,15 @@ module ExecutionUnit (
       (branch_taken && (alu_uop.predicted_target != branch_info.target))
     );
 
+  always_comb begin
+    case (alu_uop.branch_op)
+      BRANCH_EQ: branch_taken = (alu_bus.op_a == alu_bus.op_b);
+      BRANCH_NEQ: branch_taken = (alu_bus.op_a != alu_bus.op_b);
+      // TODO: extend
+      default: branch_taken = 1'b0;
+    endcase
+  end
+
   always_ff @(posedge clk) begin
     if (reset) begin
     end else begin
@@ -85,7 +92,7 @@ module ExecutionUnit (
       alu_write_bus.addr <= P0;
       alu_write_bus.data <= 32'b0;
 
-      if (alu_exec) begin
+      if (!flush_info.valid && alu_exec) begin
         alu_write_bus.en <= 1'b1;  // don't writeback if destination is P0 (zero reg)
 
         // assert (alu_iq_bus.issue_entry.pdst != P0)
@@ -101,27 +108,25 @@ module ExecutionUnit (
 
   always_ff @(posedge clk) begin
     if (reset) begin
-      branch_info.valid  <= 1'b0;
-      branch_info.taken  <= 1'b0;
+      branch_info.valid <= 1'b0;
+      branch_info.taken <= 1'b0;
       branch_info.target <= '0;
+      branch_info.mispredict <= 1'b0;
     end else begin
-      branch_info.valid  <= 1'b0;
-      branch_info.taken  <= 1'b0;
+      branch_info.valid <= 1'b0;
+      branch_info.taken <= 1'b0;
       branch_info.target <= '0;
+      branch_info.mispredict <= 1'b0;
 
-      if (branch_exec) begin
+      if (!flush_info.valid && branch_exec) begin
         branch_info.valid <= 1'b1;
         branch_info.target <= alu_uop.pc + alu_uop.imm;
 
         branch_info.mispredict <= mispredict;
         branch_info.rob_idx <= alu_iq_bus.issue_entry.rob_idx;
 
-        case (alu_uop.branch_op)
-          BRANCH_EQ: branch_info.taken <= (alu_bus.op_a == alu_bus.op_b);
-          BRANCH_NEQ: branch_info.taken <= (alu_bus.op_a != alu_bus.op_b);
-          // TODO: extend
-          default: branch_info.taken <= 1'b0;
-        endcase
+        branch_info.taken <= branch_taken;
+
       end
     end
   end

@@ -8,6 +8,7 @@ module RegisterRenamer (
     input logic clk,
     input logic reset,
     input decoder_output_t decoder_out,
+    input flush_t flush_info,
     output rat_output_t rat_out,
     ReorderBuffer_if.Renamer_Side rob_bus,
     Writeback_if.Renamer_Side wb_bus,
@@ -94,7 +95,11 @@ module RegisterRenamer (
     end else begin
       rat_out <= '0;
       busy_list_next = busy_list;
-      if (decoder_out.valid) begin
+      if (flush_info.valid) begin
+        RAT <= checkpoints[flush_info.rob_idx].RAT;
+        free_list <= checkpoints[flush_info.rob_idx].free_list;
+        busy_list <= '0; // on recovery, mark all busy bits as 0 since we don't know which instructions were in-flight
+      end else if (decoder_out.valid) begin
         rat_out.advance_pipeline <= 1'b1;
 
         free_list_next = free_list | get_freed_list();

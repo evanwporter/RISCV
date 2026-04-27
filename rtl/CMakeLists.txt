@@ -11,6 +11,7 @@ rv_add_rtl(
         ${CMAKE_CURRENT_SOURCE_DIR}/decoder_types.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/iq_types.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/renamer_types.sv
+        ${CMAKE_CURRENT_SOURCE_DIR}/util.sv
     INTERFACES
         ${CMAKE_CURRENT_SOURCE_DIR}/bus.sv
     SOURCES

@@ -41,6 +41,8 @@ module RISCV (
 
   branch_info_t branch_info;
 
+  flush_t flush_info;
+
   assign instruction_mem_bus.addr = PC;
   assign instruction_mem_bus.read_en = advance_pipeline;
 
