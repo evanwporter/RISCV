@@ -60,9 +60,9 @@ interface ReorderBuffer_if;
 
   logic full;
 
-  logic [4:0] head_ptr;
-  logic [4:0] tail_ptr;
-  logic [4:0] next_tail_ptr;
+  logic [ROB_IDX_WIDTH-1:0] head_ptr;
+  logic [ROB_IDX_WIDTH-1:0] tail_ptr;
+  logic [ROB_IDX_WIDTH-1:0] next_tail_ptr;
 
   ROB_entry_t head_entry;
 
@@ -71,7 +71,7 @@ interface ReorderBuffer_if;
   logic [COMMIT_WIDTH-1:0] executed_op_valid;
   logic [ROB_IDX_WIDTH-1:0] executed_op_rob_idx[COMMIT_WIDTH-1:0];
 
-  modport Dispatcher_Side(input full, tail_ptr, next_tail_ptr, output push, output push_entry);
+  modport Dispatcher_Side(input full, tail_ptr, output push, output push_entry);
 
   modport ROB_Side(
       input push,
@@ -84,6 +84,8 @@ interface ReorderBuffer_if;
       output tail_ptr,
       output next_tail_ptr
   );
+
+  modport Renamer_Side(input tail_ptr, input next_tail_ptr);
 
   modport Exec_Side(output executed_op_valid, output executed_op_rob_idx);
 

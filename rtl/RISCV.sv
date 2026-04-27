@@ -102,6 +102,7 @@ module RISCV (
       .reset(reset),
       .commit_bus(commit_bus),
       .decoder_out(decoder_out),
+      .rob_bus(rob_bus),
       .rat_out(rat_out),
       .wb_bus(wb_bus)
   );

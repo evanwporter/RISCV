@@ -2,12 +2,14 @@ import riscv_constants_pkg::*;
 import riscv_types_pkg::*;
 import riscv_regs_types_pkg::*;
 import riscv_decoder_types_pkg::*;
+import riscv_renamer_types_pkg::*;
 
 module RegisterRenamer (
     input logic clk,
     input logic reset,
     input decoder_output_t decoder_out,
     output rat_output_t rat_out,
+    ReorderBuffer_if.Renamer_Side rob_bus,
     Writeback_if.Renamer_Side wb_bus,
     Commit_if.Renamer_Side commit_bus
 );
@@ -19,6 +21,8 @@ module RegisterRenamer (
   // TODO Forward writeback results into busy list next
   logic [NUM_PHYSICAL_REGS-1:0] busy_list;
   logic [NUM_PHYSICAL_REGS-1:0] busy_list_next;
+
+  checkpoint_t checkpoints[ROB_WIDTH];
 
   free_list_t free_list_next;
 
@@ -148,6 +152,22 @@ module RegisterRenamer (
         rat_out.ldq_idx <= decoder_out.ldq_idx;
 
         free_list <= free_list_next;
+      end
+    end
+  end
+
+  logic [ROB_IDX_WIDTH-1:0] next_rob_idx;
+  assign next_rob_idx = rat_out.advance_pipeline ? rob_bus.next_tail_ptr : rob_bus.tail_ptr;
+
+  always_ff @(posedge clk) begin
+    if (reset) begin
+    end else begin
+      if (decoder_out.valid) begin
+        if (uop.is_branch) begin
+          checkpoints[next_rob_idx].free_list <= free_list;
+          checkpoints[next_rob_idx].valid <= 1'b1;
+          checkpoints[next_rob_idx].RAT <= RAT;
+        end
       end
     end
   end
