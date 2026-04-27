@@ -146,7 +146,6 @@ module RegisterRenamer (
         end
 
         rat_out.uop <= uop;
-        $display("Renamer: uop pc=%0d", uop.pc);
 
         rat_out.stq_idx <= decoder_out.stq_idx;
         rat_out.ldq_idx <= decoder_out.ldq_idx;

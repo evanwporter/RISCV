@@ -36,4 +36,9 @@ build $builddir/ls.elf: link $builddir/ls.o
 build $builddir/ls.bin: objcopy_bin $builddir/ls.elf
 build ls.hex: bin_to_hex $builddir/ls.bin
 
-default sub.hex add.hex ls.hex
+build $builddir/mispredict.o: assemble mispredict.s
+build $builddir/mispredict.elf: link $builddir/mispredict.o
+build $builddir/mispredict.bin: objcopy_bin $builddir/mispredict.elf
+build mispredict.hex: bin_to_hex $builddir/mispredict.bin 
+
+default sub.hex add.hex ls.hex mispredict.hex

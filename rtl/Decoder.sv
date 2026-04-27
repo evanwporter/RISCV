@@ -164,6 +164,9 @@ module Decoder (
         };
         uop_next.imm_kind = IMM_B;
 
+        // For now we will just predict not taken for branches.
+        uop_next.predicted_taken = 1'b0;
+
         case (decoded_IR.extra.b_type.funct3)
           3'b000:  uop_next.branch_op = BRANCH_EQ;  // beq
           3'b001:  uop_next.branch_op = BRANCH_NEQ;  // bne

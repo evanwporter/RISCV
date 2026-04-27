@@ -27,10 +27,6 @@ module Dispatcher (
     end
   end
 
-  always_comb begin
-    $display("RatOUT: uop pc=%0d", rat_out.uop.pc);
-  end
-
   // ALU IQ entry construction
   always_comb begin
     alu_iq_bus.push = 0;

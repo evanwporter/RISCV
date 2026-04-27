@@ -185,6 +185,9 @@ package riscv_decoder_types_pkg;
     logic is_load;
     logic is_store;
 
+    logic  predicted_taken;
+    word_t predicted_target;
+
     // OoO bookkeeping
     logic [ROB_IDX_WIDTH-1:0] rob_idx;
 

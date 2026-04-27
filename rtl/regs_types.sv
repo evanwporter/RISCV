@@ -124,6 +124,11 @@ package riscv_regs_types_pkg;
     logic  valid;
     logic  taken;
     addr_t target;
+
+    logic mispredict;
+
+    /// For misprediction recovery, we need to know which checkpoint to roll back to.
+    logic [ROB_IDX_WIDTH-1:0] rob_idx;
   } branch_info_t;
 
   typedef logic [riscv_constants_pkg::NUM_PHYSICAL_REGS-1:0] free_list_t;
