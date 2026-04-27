@@ -8,8 +8,16 @@ module MockInstructionMemory (
 
   word_t mem[256];
 
+  string hex_file;
+
   initial begin
-    $readmemh("ls.hex", mem);
+    // Try to get from command line
+    if (!$value$plusargs("hex=%s", hex_file)) begin
+      hex_file = "ls.hex";
+    end
+
+    $display("Loading program: %s", hex_file);
+    $readmemh(hex_file, mem);
   end
 
   always_comb begin
@@ -51,18 +59,12 @@ module bin_top_tb;
     $dumpvars(0, bin_top_tb);
   end
 
-  // ----------------------------------------
-  // RESET
-  // ----------------------------------------
   initial begin
     reset = 1;
     repeat (2) @(posedge clk);
     reset = 0;
   end
 
-  // ----------------------------------------
-  // MONITOR PASS / FAIL
-  // ----------------------------------------
   int cycle = 0;
 
   always @(posedge clk) begin
