@@ -30,12 +30,13 @@ module ReorderBuffer (
 
   assign bus.full  = (next_tail == head);
 
+  // TODO: This logic doesn't account for circular wraparound
   always_comb begin
     oldest_branch_info = '0;
 
     // Find oldest branch
     for (int i = 0; i < ROB_WIDTH; i++) begin
-      if (entries[i].valid && entries[i].is_branch && !entries[i].branch_info.resolved) begin
+      if (entries[i].valid && entries[i].is_branch && !entries[i].branch_info.flushed) begin
         $display("Oldest branch in ROB is at index %d, target=%0d, mispredict=%b", i,
                  entries[i].branch_info.target, entries[i].branch_info.mispredict);
         oldest_branch_info = entries[i].branch_info;
@@ -78,12 +79,13 @@ module ReorderBuffer (
         commit_bus.committed_rob_entries[i] <= '0;
       end
 
-      entries[flush_info.rob_idx].branch_info.resolved <= 1'b1;
+      entries[flush_info.rob_idx].branch_info.flushed <= 1'b1;
 
     end else begin
 
       if (branch_info.valid) begin
         entries[branch_info.rob_idx].branch_info <= branch_info;
+        // entries[branch_info.rob_idx].branch_info.flushed <= 1'b1;
       end
 
       for (int i = 0; i < COMMIT_WIDTH; i++) begin
@@ -105,19 +107,22 @@ module ReorderBuffer (
 
         commit_bus.committed_rob_entries[i] <= '0;
 
-        if (entries[idx].valid && !entries[idx].busy && !entries[idx].exception) begin
-
-          commit_bus.committed_rob_entries[i] <= entries[idx];
-
-          entries[idx].valid <= 1'b0;
-
-          $display("Committing ROB entry %d, PC=%0d", idx, entries[idx].PC);
-
-          commit_count++;
-
-        end else begin
+        if (!entries[idx].valid || entries[idx].busy || entries[idx].exception) begin
           break;
         end
+
+        // if (entries[idx].is_branch && entries[idx].branch_info.mispredict) begin
+        //   break;
+        // end
+
+        commit_bus.committed_rob_entries[i] <= entries[idx];
+
+        entries[idx].valid <= 1'b0;
+
+        $display("Committing ROB entry %d, PC=%0d", idx, entries[idx].PC);
+
+        commit_count++;
+
       end
 
       head <= head + commit_count;

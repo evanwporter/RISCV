@@ -15,19 +15,19 @@ module LSU (
   logic pop_next;
 
   always_comb begin
-    mem_bus.read_en  = 1'b0;
+    mem_bus.read_en = 1'b0;
     mem_bus.write_en = 1'b0;
-    mem_bus.addr     = 32'b0;
-    mem_bus.wdata    = 32'b0;
+    mem_bus.addr = 32'b0;
+    mem_bus.wdata = 32'b0;
 
-    pop_next         = 1'b0;
+    pop_next = 1'b0;
 
     if (stq_bus.mem_store_valid) begin
       mem_bus.write_en = 1'b1;
       mem_bus.addr = stq_bus.mem_store_addr;
       mem_bus.wdata = stq_bus.mem_store_data;
 
-      pop_next = 1'b1;  // request pop NEXT cycle
+      pop_next = 1'b1;
     end else if (ldq_bus.mem_load_valid) begin
       mem_bus.read_en = 1'b1;
       mem_bus.addr = ldq_bus.mem_load_addr;

@@ -120,6 +120,7 @@ package riscv_regs_types_pkg;
     addr_t PC;
   } writeback_t;
 
+  /// Stores the result of executing a branch instruction 
   typedef struct packed {
     logic  valid;
     logic  taken;
@@ -130,9 +131,10 @@ package riscv_regs_types_pkg;
     /// For misprediction recovery, we need to know which checkpoint to roll back to.
     logic [ROB_IDX_WIDTH-1:0] rob_idx;
 
-    /// Mark this once we've resolved the branch (ie: modified the control flow)
+    /// Mark this once/if we've flushed the branch (ie: modified the control flow)
     /// TODO: This is only needed for `oldest_branch_info` in RISCV.sv
-    logic resolved;
+    logic flushed;
+
   } branch_info_t;
 
   typedef struct packed {

@@ -101,15 +101,10 @@ module ExecutionUnit (
 
   always_ff @(posedge clk) begin
     if (reset) begin
-      branch_info.valid <= 1'b0;
-      branch_info.taken <= 1'b0;
-      branch_info.target <= '0;
-      branch_info.mispredict <= 1'b0;
+      branch_info <= '0;
+
     end else begin
-      branch_info.valid <= 1'b0;
-      branch_info.taken <= 1'b0;
-      branch_info.target <= '0;
-      branch_info.mispredict <= 1'b0;
+      branch_info <= '0;
 
       if (!flush_info.valid && branch_exec) begin
         branch_info.valid  <= 1'b1;
@@ -121,7 +116,6 @@ module ExecutionUnit (
         branch_info.rob_idx <= alu_iq_bus.issue_entry.rob_idx;
 
         branch_info.taken <= branch_taken;
-
       end
     end
   end
@@ -191,8 +185,8 @@ module ExecutionUnit (
         commit_bus.executed_op_pdst[0] <= alu_iq_bus.issue_entry.pdst;
       end
 
-      // Store completion
-      if (mem_iq_bus.issue_valid && mem_uop.is_store) begin
+      // Load/Store completion
+      if (mem_iq_bus.issue_valid && (mem_uop.is_store || mem_uop.is_load)) begin
         commit_bus.executed_op_valid[1] <= 1'b1;
         commit_bus.executed_op_rob_idx[1] <= mem_iq_bus.issue_entry.rob_idx;
         commit_bus.executed_op_pdst[1] <= mem_iq_bus.issue_entry.pdst;

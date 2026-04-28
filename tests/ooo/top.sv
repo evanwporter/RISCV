@@ -63,8 +63,8 @@ module ooo_top_tb (
   endfunction
 
   (* maybe_unused *)
-  function void get_iq_entries(output int pc[IQ_WIDTH], output int valid[IQ_WIDTH],
-                               output int prs1[IQ_WIDTH], output int prs2[IQ_WIDTH]);
+  function void get_alu_iq_entries(output int pc[IQ_WIDTH], output int valid[IQ_WIDTH],
+                                   output int prs1[IQ_WIDTH], output int prs2[IQ_WIDTH]);
     for (int i = 0; i < IQ_WIDTH; i++) begin
       pc[i] = dut.alu_iq.entries[i].uop.pc;
       valid[i] = dut.alu_iq.entries[i].valid;
@@ -73,8 +73,20 @@ module ooo_top_tb (
     end
   endfunction
 
+  (* maybe_unused *)
+  function void get_mem_iq_entries(output int pc[IQ_WIDTH], output int valid[IQ_WIDTH],
+                                   output int prs1[IQ_WIDTH], output int prs2[IQ_WIDTH]);
+    for (int i = 0; i < IQ_WIDTH; i++) begin
+      pc[i] = dut.mem_iq.entries[i].uop.pc;
+      valid[i] = dut.mem_iq.entries[i].valid;
+      prs1[i] = dut.mem_iq.entries[i].prs1_ready;
+      prs2[i] = dut.mem_iq.entries[i].prs2_ready;
+    end
+  endfunction
+
   export "DPI-C" function get_rob_entries;
-  export "DPI-C" function get_iq_entries;
+  export "DPI-C" function get_alu_iq_entries;
+  export "DPI-C" function get_mem_iq_entries;
 
   Memory_Bus_if instruction_bus ();
   Memory_Bus_if data_bus ();
@@ -113,7 +125,7 @@ module ooo_top_tb (
         $finish;
       end
 
-      if (cycle > 50) begin
+      if (cycle > 60) begin
         $display("TIMEOUT");
         $finish;
       end

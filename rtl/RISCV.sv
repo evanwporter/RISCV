@@ -30,7 +30,7 @@ module RISCV (
 
   RF_Write_if lsu_write_bus ();
 
-  word_t PC;
+  addr_t PC;
 
   rat_output_t rat_out;
 

@@ -83,12 +83,19 @@ int main(int argc, char** argv) {
             int busy[32];
         } ROB;
 
-        struct IQ {
+        struct AIQ {
             int PC[32];
             int valid[32];
             int prs1_ready[32];
             int prs2_ready[32];
-        } IQ;
+        } AIQ;
+
+        struct MIQ {
+            int PC[32];
+            int valid[32];
+            int prs1_ready[32];
+            int prs2_ready[32];
+        } MIQ;
 
         const auto snap = top->ooo_top_tb->get_snapshot();
         CycleSnapshot snapshot = {
@@ -101,7 +108,8 @@ int main(int argc, char** argv) {
         };
 
         get_rob_entries(ROB.PC, ROB.valid, ROB.busy);
-        get_iq_entries(IQ.PC, IQ.valid, IQ.prs1_ready, IQ.prs2_ready);
+        get_alu_iq_entries(AIQ.PC, AIQ.valid, AIQ.prs1_ready, AIQ.prs2_ready);
+        get_mem_iq_entries(MIQ.PC, MIQ.valid, MIQ.prs1_ready, MIQ.prs2_ready);
 
         printf("Cycle %d: F = %d, Dc = %d, R = %d, Dp = %d, I = %d, E = %d\n", cycle + 1, snapshot.Fetched_PC, snapshot.Decoded_PC, snapshot.Renamed_PC, snapshot.Dispatched_PC, snapshot.Issued_PC, snapshot.Executed_PC);
 
@@ -114,11 +122,20 @@ int main(int argc, char** argv) {
         }
         printf("\n");
 
-        // print IQ
-        printf("  IQ : ");
+        // print AIQ
+        printf("  AIQ: ");
         for (int i = 0; i < 32; i++) {
-            if (IQ.valid[i]) {
-                printf("[%d:%d,%s,%s] ", i, IQ.PC[i], IQ.prs1_ready[i] ? "1" : "0", IQ.prs2_ready[i] ? "1" : "0");
+            if (AIQ.valid[i]) {
+                printf("[%d:%d,%s,%s] ", i, AIQ.PC[i], AIQ.prs1_ready[i] ? "1" : "0", AIQ.prs2_ready[i] ? "1" : "0");
+            }
+        }
+        printf("\n");
+
+        // print MIQ
+        printf("  MIQ: ");
+        for (int i = 0; i < 32; i++) {
+            if (MIQ.valid[i]) {
+                printf("[%d:%d,%s,%s] ", i, MIQ.PC[i], MIQ.prs1_ready[i] ? "1" : "0", MIQ.prs2_ready[i] ? "1" : "0");
             }
         }
         printf("\n");
