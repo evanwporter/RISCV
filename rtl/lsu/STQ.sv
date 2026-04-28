@@ -17,7 +17,7 @@ module STQ (
   logic [STQ_IDX_WIDTH:0] count;
 
   assign bus.full  = (count == STQ_WIDTH);
-  assign bus.empty = (count == '0);
+  assign bus.empty = (count == 0);
 
   // Only the oldest store can fire
   // TODO: we should be able to pop the head and push a new store in the same cycle, 

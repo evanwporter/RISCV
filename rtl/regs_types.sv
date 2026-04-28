@@ -129,6 +129,10 @@ package riscv_regs_types_pkg;
 
     /// For misprediction recovery, we need to know which checkpoint to roll back to.
     logic [ROB_IDX_WIDTH-1:0] rob_idx;
+
+    /// Mark this once we've resolved the branch (ie: modified the control flow)
+    /// TODO: This is only needed for `oldest_branch_info` in RISCV.sv
+    logic resolved;
   } branch_info_t;
 
   typedef struct packed {

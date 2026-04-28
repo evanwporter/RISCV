@@ -41,6 +41,9 @@ module IssueQueue (
 
   // Sequential logic
   always_ff @(posedge clk) begin
+    logic [IQ_IDX_WIDTH-1:0] selected;
+    logic found;
+
     if (reset) begin
       for (int i = 0; i < IQ_WIDTH; i++) begin
         entries[i] <= '0;
@@ -50,6 +53,9 @@ module IssueQueue (
         if (entries[i].valid) begin
           /// We invalidate all entries younger than the flush entry
           if (is_younger(entries[i].rob_idx, flush_info.rob_idx)) begin
+            $display("Flushing IQ entry %d (rob_idx=%d), PC=%d", i, entries[i].rob_idx,
+                     entries[i].uop.pc);
+            $fflush();
             entries[i].valid <= 1'b0;
           end
         end
@@ -60,13 +66,26 @@ module IssueQueue (
       bus.issue_entry <= '0;
 
       // Issue selection
+      // TODO: This is a bit complicated, but if we add multiple EUs then we don't need the oldest.
+      found = 1'b0;
+
+      // Find oldest ready entry
       for (int i = 0; i < IQ_WIDTH; i++) begin
         if (entries[i].valid && entries[i].prs1_ready && entries[i].prs2_ready) begin
-          bus.issue_entry  <= entries[i];
-          bus.issue_valid  <= 1'b1;
-          entries[i].valid <= 1'b0;
-          break;
+          if (!found || is_older(entries[i].rob_idx, entries[selected].rob_idx)) begin
+            selected = i[IQ_IDX_WIDTH-1:0];
+            found = 1'b1;
+          end
         end
+      end
+
+      // Issue
+      bus.issue_valid <= found;
+      if (found) begin
+        $display("Issuing IQ entry %d (rob_idx=%d), PC=%d", selected, entries[selected].rob_idx,
+                 entries[selected].uop.pc);
+        bus.issue_entry <= entries[selected];
+        entries[selected].valid <= 1'b0;
       end
 
       // Wakeup (broadcast)

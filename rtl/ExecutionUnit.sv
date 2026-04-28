@@ -67,14 +67,7 @@ module ExecutionUnit (
 
   logic branch_taken;
 
-  logic mispredict;
-  assign mispredict =
-    branch_exec &&
-    (
-      (alu_uop.predicted_taken != branch_taken) ||
-      (branch_taken && (alu_uop.predicted_target != branch_info.target))
-    );
-
+  wire  mispredict = branch_exec && branch_taken && (alu_uop.pc != branch_info.target);
   always_comb begin
     case (alu_uop.branch_op)
       BRANCH_EQ: branch_taken = (alu_bus.op_a == alu_bus.op_b);
@@ -119,8 +112,10 @@ module ExecutionUnit (
       branch_info.mispredict <= 1'b0;
 
       if (!flush_info.valid && branch_exec) begin
-        branch_info.valid <= 1'b1;
+        branch_info.valid  <= 1'b1;
         branch_info.target <= alu_uop.pc + alu_uop.imm;
+
+        $display("Branch executed at PC=%0d: imm=%0d", alu_uop.pc, alu_uop.imm);
 
         branch_info.mispredict <= mispredict;
         branch_info.rob_idx <= alu_iq_bus.issue_entry.rob_idx;

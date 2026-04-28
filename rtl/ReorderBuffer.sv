@@ -9,15 +9,18 @@ module ReorderBuffer (
 
     input flush_t flush_info,
 
+    input  branch_info_t branch_info,
+    output branch_info_t oldest_branch_info,
+
     ReorderBuffer_if.ROB_Side bus,
     Commit_if.ROB_Side commit_bus
 );
 
-  ROB_entry_t rob_entries[ROB_WIDTH];
+  ROB_entry_t entries[ROB_WIDTH];
 
   logic [ROB_IDX_WIDTH-1:0] head, tail;
 
-  assign bus.head_entry = rob_entries[head];
+  assign bus.head_entry = entries[head];
   assign bus.head_ptr = head;
   assign bus.tail_ptr = tail;
   assign bus.next_tail_ptr = tail + 1;
@@ -27,10 +30,23 @@ module ReorderBuffer (
 
   assign bus.full  = (next_tail == head);
 
+  always_comb begin
+    oldest_branch_info = '0;
+
+    // Find oldest branch
+    for (int i = 0; i < ROB_WIDTH; i++) begin
+      if (entries[i].valid && entries[i].is_branch && !entries[i].branch_info.resolved) begin
+        $display("Oldest branch in ROB is at index %d, target=%0d, mispredict=%b", i,
+                 entries[i].branch_info.target, entries[i].branch_info.mispredict);
+        oldest_branch_info = entries[i].branch_info;
+        break;
+      end
+    end
+  end
+
   always_ff @(posedge clk) begin
     logic [ROB_IDX_WIDTH-1:0] idx;
     /// TODO replace i w/ commit_count
-    int i;
     logic [4:0] commit_count;
     commit_count = 0;
 
@@ -38,16 +54,18 @@ module ReorderBuffer (
       head <= '0;
       tail <= '0;
 
-      for (int j = 0; j < ROB_WIDTH; j++) begin
-        rob_entries[j] <= '0;
+      for (int i = 0; i < ROB_WIDTH; i++) begin
+        entries[i] <= '0;
       end
 
     end else if (flush_info.valid) begin
       // Invalidate younger entries
       for (int i = 0; i < ROB_WIDTH; i++) begin
-        if (rob_entries[i].valid) begin
+        if (entries[i].valid) begin
           if (is_younger(i[ROB_IDX_WIDTH-1:0], flush_info.rob_idx)) begin
-            rob_entries[i].valid <= 1'b0;
+            $display("Flushing ROB entry %d, PC=%0d", i, entries[i].PC);
+            $fflush();
+            entries[i].valid <= 1'b0;
           end
         end
       end
@@ -60,26 +78,40 @@ module ReorderBuffer (
         commit_bus.committed_rob_entries[i] <= '0;
       end
 
+      entries[flush_info.rob_idx].branch_info.resolved <= 1'b1;
+
     end else begin
-      for (i = 0; i < COMMIT_WIDTH; i++) begin
+
+      if (branch_info.valid) begin
+        entries[branch_info.rob_idx].branch_info <= branch_info;
+      end
+
+      for (int i = 0; i < COMMIT_WIDTH; i++) begin
         // Mark entries that have been executed as not busy anymore 
         // (i.e. their results are ready and they can be committed)
         if (commit_bus.executed_op_valid[i]) begin
-          rob_entries[commit_bus.executed_op_rob_idx[i]].busy <= 1'b0;
+          entries[commit_bus.executed_op_rob_idx[i]].busy <= 1'b0;
         end
       end
 
+      // Clear commit bus before we start filling it with committed entries
+      for (int i = 0; i < COMMIT_WIDTH; i++) begin
+        commit_bus.committed_rob_entries[i] <= '0;
+      end
+
       // Commit (keep popping entries starting from head until we get to a not busy entry)
-      for (i = 0; i < COMMIT_WIDTH; i++) begin
+      for (int i = 0; i < COMMIT_WIDTH; i++) begin
         idx = head + i;
 
         commit_bus.committed_rob_entries[i] <= '0;
 
-        if (rob_entries[idx].valid && !rob_entries[idx].busy && !rob_entries[idx].exception) begin
+        if (entries[idx].valid && !entries[idx].busy && !entries[idx].exception) begin
 
-          commit_bus.committed_rob_entries[i] <= rob_entries[idx];
+          commit_bus.committed_rob_entries[i] <= entries[idx];
 
-          rob_entries[idx].valid <= 1'b0;
+          entries[idx].valid <= 1'b0;
+
+          $display("Committing ROB entry %d, PC=%0d", idx, entries[idx].PC);
 
           commit_count++;
 
@@ -92,9 +124,9 @@ module ReorderBuffer (
 
       // Dispatch (push to tail)
       if (bus.push && !bus.full) begin
-        rob_entries[tail] <= bus.push_entry;
-        rob_entries[tail].valid <= 1'b1;
-        rob_entries[tail].busy <= 1'b1;
+        entries[tail] <= bus.push_entry;
+        entries[tail].valid <= 1'b1;
+        entries[tail].busy <= 1'b1;
 
         tail <= next_tail;
       end

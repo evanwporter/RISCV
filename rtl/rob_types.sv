@@ -22,6 +22,14 @@ package riscv_rob_types_pkg;
 
     addr_t PC;
 
+    branch_info_t branch_info;
+
+    logic is_branch;
+
+    logical_reg_t rd;
+
+    logic has_rd;
+
   } ROB_entry_t;
 
 endpackage : riscv_rob_types_pkg

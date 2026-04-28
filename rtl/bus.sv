@@ -87,8 +87,6 @@ interface ReorderBuffer_if;
 
   modport Renamer_Side(input tail_ptr, input next_tail_ptr);
 
-  modport Exec_Side(output executed_op_valid, output executed_op_rob_idx);
-
   modport Commit_Side(input head_entry, input head_ptr, input tail_ptr);
 
 endinterface : ReorderBuffer_if

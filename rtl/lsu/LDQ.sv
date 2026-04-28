@@ -31,10 +31,10 @@ module LDQ (
   integer k;
   always_ff @(posedge clk) begin
     if (reset) begin
-      bus.tail_idx <= '0;
-      count <= '0;
+      bus.tail_idx <= 0;
+      count <= 0;
       for (k = 0; k < LDQ_WIDTH; k++) begin
-        entries[k] <= '0;
+        entries[k].valid <= 0;
       end
     end else begin
       // Allocate

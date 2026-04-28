@@ -10,15 +10,4 @@ package riscv_renamer_types_pkg;
     logic valid;
   } checkpoint_t;
 
-  typedef struct packed {
-    logic valid;
-
-    // Which branch checkpoint to restore
-    logic [ROB_IDX_WIDTH-1:0] rob_idx;
-
-    // Optional: useful for debugging / coordination
-    word_t correct_pc;
-
-  } rename_recovery_t;
-
 endpackage : riscv_renamer_types_pkg

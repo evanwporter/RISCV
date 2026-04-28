@@ -24,6 +24,9 @@ module Dispatcher (
       rob_bus.push_entry.stq_idx_valid = rat_out.uop.is_store;
       rob_bus.push_entry.stq_idx = rat_out.stq_idx;
       rob_bus.push_entry.PC = rat_out.uop.pc;
+      rob_bus.push_entry.is_branch = rat_out.uop.is_branch;
+      rob_bus.push_entry.rd = rat_out.uop.rd;
+      rob_bus.push_entry.has_rd = rat_out.uop.has_rd;
     end
   end
 

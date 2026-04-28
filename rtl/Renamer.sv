@@ -3,6 +3,7 @@ import riscv_types_pkg::*;
 import riscv_regs_types_pkg::*;
 import riscv_decoder_types_pkg::*;
 import riscv_renamer_types_pkg::*;
+import riscv_rob_types_pkg::*;
 
 module RegisterRenamer (
     input logic clk,
@@ -15,7 +16,12 @@ module RegisterRenamer (
     Commit_if.Renamer_Side commit_bus
 );
 
+  /// Speculative Register Alias Table
   physical_reg_t [31:0] RAT;
+
+  /// Architectual Register Alias Table
+  (* maybe_unused *)
+  physical_reg_t [31:0] ARAT;
 
   free_list_t free_list;
 
@@ -56,6 +62,17 @@ module RegisterRenamer (
       if (commit_bus.committed_rob_entries[i].valid &&
         commit_bus.committed_rob_entries[i].old_dest != P0) begin
 
+        if (commit_bus.committed_rob_entries[i].has_rd && commit_bus.committed_rob_entries[i].new_dest != P0) begin
+          assert (ARAT[commit_bus.committed_rob_entries[i].rd] == commit_bus.committed_rob_entries[i].old_dest)
+          else
+            $error(
+                "Commit mismatch: ARAT[%0d]=P%0d but ROB old_dest=P%0d",
+                commit_bus.committed_rob_entries[i].rd,
+                ARAT[commit_bus.committed_rob_entries[i].rd],
+                commit_bus.committed_rob_entries[i].old_dest
+            );
+        end
+
         freed_list[commit_bus.committed_rob_entries[i].old_dest] = 1'b1;
       end
     end
@@ -95,6 +112,12 @@ module RegisterRenamer (
     end else begin
       rat_out <= '0;
       busy_list_next = busy_list;
+
+      for (int i = 0; i < 32; i++) begin
+        assert (!free_list[RAT[i]])
+        else $error("RAT[%0d] maps to free physical register P%0d", i, RAT[i]);
+      end
+
       if (flush_info.valid) begin
         RAT <= checkpoints[flush_info.rob_idx].RAT;
         free_list <= checkpoints[flush_info.rob_idx].free_list;
@@ -156,6 +179,25 @@ module RegisterRenamer (
         rat_out.ldq_idx <= decoder_out.ldq_idx;
 
         free_list <= free_list_next;
+      end
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    if (reset) begin
+      // Initial architectural state: xN → PN
+      for (int i = 0; i < 32; i++) begin
+        ARAT[i] <= physical_reg_t'(i);
+      end
+    end else begin
+      // Update ARAT only on commit
+      for (int i = 0; i < COMMIT_WIDTH; i++) begin
+        if (commit_bus.committed_rob_entries[i].valid) begin
+          automatic ROB_entry_t entry = commit_bus.committed_rob_entries[i];
+          if (entry.new_dest != P0 && entry.has_rd) begin
+            ARAT[entry.rd] <= entry.new_dest;
+          end
+        end
       end
     end
   end
