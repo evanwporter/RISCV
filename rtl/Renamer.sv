@@ -23,22 +23,32 @@ module RegisterRenamer (
   (* maybe_unused *)
   physical_reg_t [31:0] ARAT;
 
+  /// The `free_list` tracks which physical registers are free (1) vs allocated (0). 
+  /// Free registers can be used as destination registers for new instructions.
   free_list_t free_list;
 
-  // TODO Forward writeback results into busy list next
+  /// Combinational logic for the next free list state.
+  free_list_t free_list_next;
+
+  /// The `busy_list` tracks which physical registers are ready (0) vs which 
+  /// are waiting for an instruction to writeback to them (1). When all physical
+  /// operands for an instruction are ready, we can issue it.
+  // TODO: Forward writeback results into busy list next
   logic [NUM_PHYSICAL_REGS-1:0] busy_list;
+
   logic [NUM_PHYSICAL_REGS-1:0] busy_list_next;
 
+  /// Checkpoints for branch instructions. Allows quickly restoring the RAT 
+  /// and free list on a branch mispredict.
+  /// TODO: Free checkpoints once no longer needed. 
   checkpoint_t checkpoints[ROB_WIDTH];
-
-  free_list_t free_list_next;
 
   typedef struct packed {
     logic valid;
     physical_reg_t idx;
   } next_free_t;
 
-  // could be replaced with always_comb
+  // Could be replaced with always_comb
   function automatic next_free_t get_next_free(free_list_t fl);
     next_free_t result;
 
@@ -84,6 +94,7 @@ module RegisterRenamer (
   uop_t uop;
   assign uop = decoder_out.uop;
 
+  // Extract source register indices from decoded uop
   always_comb begin
     if (!uop.has_rs1) rs1 = x0;
     else rs1 = uop.rs1;
@@ -91,8 +102,44 @@ module RegisterRenamer (
     else rs2 = uop.rs2;
   end
 
+  /// Obtain the next free physical register from the free list. This is used for renaming
+  /// destination registers of new instructions.
   next_free_t next_free;
   assign next_free = get_next_free(free_list);
+
+  always_comb begin
+    free_list_next = free_list;
+
+    if (decoder_out.valid && !flush_info.valid) begin
+      // Free committed regs
+      free_list_next |= get_freed_list();
+
+      // Allocate new reg
+      if (uop.has_rd && uop.rd != x0 && next_free.valid) begin
+        free_list_next[next_free.idx] = 1'b0;
+      end
+    end
+
+    // Flush override (highest priority)
+    if (flush_info.valid) begin
+      free_list_next = checkpoints[flush_info.rob_idx].free_list;
+    end
+  end
+
+  // Update free list on clock edge.
+  always_ff @(posedge clk) begin
+    if (reset) begin
+      free_list <= {NUM_PHYSICAL_REGS{1'b1}};
+
+      // Mark architectural regs as allocated
+      for (int i = 0; i < 32; i++) begin
+        free_list[i] <= 1'b0;
+      end
+
+    end else begin
+      free_list <= free_list_next;
+    end
+  end
 
   always_ff @(posedge clk) begin
 
@@ -100,14 +147,12 @@ module RegisterRenamer (
     else $error("Error: physical register P0 should never be allocated");
 
     if (reset) begin
-      free_list <= {NUM_PHYSICAL_REGS{1'b1}};
 
       // Mark all ready
       busy_list <= '0;
 
       for (int i = 0; i < 32; i++) begin
         RAT[i] <= physical_reg_t'(i);
-        free_list[i] <= 1'b0;
       end
     end else begin
       rat_out <= '0;
@@ -120,12 +165,9 @@ module RegisterRenamer (
 
       if (flush_info.valid) begin
         RAT <= checkpoints[flush_info.rob_idx].RAT;
-        free_list <= checkpoints[flush_info.rob_idx].free_list;
         busy_list <= '0; // on recovery, mark all busy bits as 0 since we don't know which instructions were in-flight
       end else if (decoder_out.valid) begin
         rat_out.advance_pipeline <= 1'b1;
-
-        free_list_next = free_list | get_freed_list();
 
         // Read sources
         rat_out.Ps1 <= uop.has_rs1 ? RAT[rs1] : P0;
@@ -134,6 +176,7 @@ module RegisterRenamer (
         rat_out.Ps1_ready <= uop.has_rs1 ? ~busy_list[RAT[rs1]] : 1'b1;
         rat_out.Ps2_ready <= uop.has_rs2 ? ~busy_list[RAT[rs2]] : 1'b1;
 
+        // Writeback results (mark destination registers as ready)
         if (wb_bus.alu_writeback.valid) begin
           busy_list[wb_bus.alu_writeback.pdst] <= 1'b0;
         end
@@ -159,7 +202,6 @@ module RegisterRenamer (
               );
 
             RAT[uop.rd] <= next_free.idx;
-            free_list_next[next_free.idx] = 1'b0;
 
             busy_list[next_free.idx] <= 1'b1;
           end else begin
@@ -178,14 +220,14 @@ module RegisterRenamer (
         rat_out.stq_idx <= decoder_out.stq_idx;
         rat_out.ldq_idx <= decoder_out.ldq_idx;
 
-        free_list <= free_list_next;
       end
     end
   end
 
+  // Commit (update ARAT and free physical registers)
   always_ff @(posedge clk) begin
     if (reset) begin
-      // Initial architectural state: xN → PN
+      // Initial architectural state: xN -> PN
       for (int i = 0; i < 32; i++) begin
         ARAT[i] <= physical_reg_t'(i);
       end
@@ -202,9 +244,12 @@ module RegisterRenamer (
     end
   end
 
+  /// Next ROB index for checkpointing (the ROB index for this instruction is 
+  /// allocated in the next stage)
   logic [ROB_IDX_WIDTH-1:0] next_rob_idx;
   assign next_rob_idx = rat_out.advance_pipeline ? rob_bus.next_tail_ptr : rob_bus.tail_ptr;
 
+  /// Create Checkpoint on branch instructions
   always_ff @(posedge clk) begin
     if (reset) begin
     end else begin

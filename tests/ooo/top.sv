@@ -1,7 +1,5 @@
 import testbench_utils_pkg::*;
-
 import riscv_types_pkg::*;
-
 import riscv_constants_pkg::*;
 
 module MockInstructionMemory (
