@@ -5,7 +5,7 @@ package riscv_constants_pkg;
 
   /// TODO: the amount that can be popped from the iq should not depend on commit width
   /// ALso this breaks the ls when its 4 due to popping mispredicted branches off of ROB
-  localparam int COMMIT_WIDTH = 2;
+  localparam int COMMIT_WIDTH = 1;
 
   localparam int STQ_WIDTH = 4;
   localparam int STQ_IDX_WIDTH = $clog2(STQ_WIDTH);

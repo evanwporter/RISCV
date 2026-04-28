@@ -180,16 +180,14 @@ module ExecutionUnit (
 
       // ALU completion
       if (alu_iq_bus.issue_valid) begin
-        commit_bus.executed_op_valid[0] <= 1'b1;
+        commit_bus.executed_op_valid[0]   <= 1'b1;
         commit_bus.executed_op_rob_idx[0] <= alu_iq_bus.issue_entry.rob_idx;
-        commit_bus.executed_op_pdst[0] <= alu_iq_bus.issue_entry.pdst;
       end
 
       // Load/Store completion
       if (mem_iq_bus.issue_valid && (mem_uop.is_store || mem_uop.is_load)) begin
-        commit_bus.executed_op_valid[1] <= 1'b1;
+        commit_bus.executed_op_valid[1]   <= 1'b1;
         commit_bus.executed_op_rob_idx[1] <= mem_iq_bus.issue_entry.rob_idx;
-        commit_bus.executed_op_pdst[1] <= mem_iq_bus.issue_entry.pdst;
       end
     end
   end

@@ -31,11 +31,11 @@ endinterface : IssueQueue_if
 
 
 interface Commit_if;
+  // TODO: Move this elsewhere since its confusing to have it here
   // We allow `COMMIT_WIDTH` instructions to be committed at once, 
   // so we need to track which ones are executed and ready to commit
-  logic [COMMIT_WIDTH-1:0] executed_op_valid;
-  logic [ROB_IDX_WIDTH-1:0] executed_op_rob_idx[COMMIT_WIDTH-1:0];
-  physical_reg_t executed_op_pdst[COMMIT_WIDTH-1:0];
+  logic [1:0] executed_op_valid;
+  logic [ROB_IDX_WIDTH-1:0] executed_op_rob_idx[1:0];
 
   ROB_entry_t committed_rob_entries[COMMIT_WIDTH-1:0];
 
@@ -45,7 +45,7 @@ interface Commit_if;
       output committed_rob_entries
   );
 
-  modport Execution_Side(output executed_op_valid, executed_op_rob_idx, output executed_op_pdst);
+  modport Execution_Side(output executed_op_valid, executed_op_rob_idx);
 
   modport Renamer_Side(input committed_rob_entries);
 

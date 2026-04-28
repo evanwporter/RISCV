@@ -135,6 +135,8 @@ package riscv_regs_types_pkg;
     /// TODO: This is only needed for `oldest_branch_info` in RISCV.sv
     logic flushed;
 
+    logic resolved;
+
   } branch_info_t;
 
   typedef struct packed {

@@ -36,7 +36,7 @@ module ReorderBuffer (
 
     // Find oldest branch
     for (int i = 0; i < ROB_WIDTH; i++) begin
-      if (entries[i].valid && entries[i].is_branch && !entries[i].branch_info.flushed) begin
+      if (entries[i].valid && entries[i].is_branch && !entries[i].branch_info.flushed && !entries[i].branch_info.resolved) begin
         $display("Oldest branch in ROB is at index %d, target=%0d, mispredict=%b", i,
                  entries[i].branch_info.target, entries[i].branch_info.mispredict);
         oldest_branch_info = entries[i].branch_info;
@@ -79,16 +79,19 @@ module ReorderBuffer (
         commit_bus.committed_rob_entries[i] <= '0;
       end
 
-      entries[flush_info.rob_idx].branch_info.flushed <= 1'b1;
+      entries[flush_info.rob_idx].branch_info.flushed  <= 1'b1;
+      entries[flush_info.rob_idx].branch_info.resolved <= 1'b1;
 
     end else begin
 
       if (branch_info.valid) begin
         entries[branch_info.rob_idx].branch_info <= branch_info;
+        entries[branch_info.rob_idx].branch_info.resolved <= !branch_info.mispredict;
         // entries[branch_info.rob_idx].branch_info.flushed <= 1'b1;
       end
 
-      for (int i = 0; i < COMMIT_WIDTH; i++) begin
+      /// TODO : change this from a two two like # of IQs or something
+      for (int i = 0; i < 2; i++) begin
         // Mark entries that have been executed as not busy anymore 
         // (i.e. their results are ready and they can be committed)
         if (commit_bus.executed_op_valid[i]) begin
@@ -111,9 +114,9 @@ module ReorderBuffer (
           break;
         end
 
-        // if (entries[idx].is_branch && entries[idx].branch_info.mispredict) begin
-        //   break;
-        // end
+        if (entries[idx].is_branch && !entries[idx].branch_info.resolved) begin
+          break;
+        end
 
         commit_bus.committed_rob_entries[i] <= entries[idx];
 
