@@ -1,6 +1,5 @@
 add_subdirectory(common)
 add_subdirectory(ooo)
-add_subdirectory(bin)
 
 get_target_property(RV_TESTBENCHES rv_rtl INTERFACE_RV_TESTBENCHES)
 
