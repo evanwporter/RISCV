@@ -1,5 +1,5 @@
-as      = riscv-none-elf-as
-ld      = riscv-none-elf-ld
+as = riscv-none-elf-as
+ld = riscv-none-elf-ld
 objcopy = riscv-none-elf-objcopy
 python  = python
 
