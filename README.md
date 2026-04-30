@@ -2,6 +2,6 @@
 
 This is not your average SLOP-V Core with 5 pipeline stages.
 
-This one has rudimentary OoO CPU processing. Currently there are 4 instructions supported `add(i)`, `sub`, `branch(eq/ne)`.
+This one has rudimentary OoO CPU processing. Currently there are only a few instructions supported `alu`, `branch(eq/ne)`, and `lw`/`sw`. See `tests/asm` for more info.
 
-~~Even though its OoO it does not have speculative execution...yet. This means that is executes out of order up until it hits a branch instruction at which point it halts.~~
+The speculative execution just predicts that every branch will not be taken.

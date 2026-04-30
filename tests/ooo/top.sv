@@ -125,7 +125,7 @@ module ooo_top_tb (
         $finish;
       end
 
-      if (cycle > 80) begin
+      if (cycle > 120) begin
         $display("TIMEOUT");
         $finish;
       end
