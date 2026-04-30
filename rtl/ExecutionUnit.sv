@@ -152,12 +152,12 @@ module ExecutionUnit (
       agu_bus.offset = mem_uop.imm;
 
       if (mem_uop.is_store) begin
-        // -------- Address path (uopSTA) --------
+        // Address path (uopSTA)
         stq_bus.write_addr = 1'b1;
         stq_bus.write_addr_idx = mem_iq_bus.issue_entry.stq_idx;
         stq_bus.write_addr_value = agu_bus.addr;
 
-        // -------- Data path (uopSTD) --------
+        // Data path (uopSTD)
         mem_b_bus.en = 1'b1;
         mem_b_bus.addr = mem_iq_bus.issue_entry.prs2;
 

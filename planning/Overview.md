@@ -42,7 +42,7 @@ There is usually one issue queue for each part of the execution. One for the ALU
 
 Every time a writeback of a micro-op finishes, a writeback tag is produced. This is broadcasted to all issue queues. Any entries within the IQ that depend on this register getting written back are removed from the IQ, and pushed onto the execution unit.
 
-A source reg in the IQ is readied when it’s written back. Every operand (source) in every IQ entry that is waiting on that physical register is marked ready. 
+A source reg in the IQ is readied when it’s written back. Its written back via the Register File. Every operand (source) in every IQ entry that is waiting on that physical register is marked ready. 
 
 Every cycle (ie: [[Overview#Issue]] Stage) it scans every entry, and selects a limited number (based on execution ports) of ready UOPs (ready means both source registers are marked ready) to issue onto the execution unit.
 
@@ -55,7 +55,7 @@ So once the head of the ROB is no longer busy, we *commit*. This means we push t
 
 The reorder queue tracks the original order of the fetches.
 
-When execution finishes we mark the corresponding entry in the ROB as no longer busy.
+When execution finishes we mark the corresponding entry in the ROB as no longer busy. Notice that this happens through the Execution Unit, and not the Register File like in the case of Issue Queue. The reason being is not every instruction writes back, but every instruction need to commit and come off the ROB, so we route through the Execution Unit.
 
 Only a limited number of instructions are committed every cycle (ie popped off the ROB) 
 
@@ -112,39 +112,64 @@ The Load Queue executes whenever its ready, even if that means out of order.
 
 Entries are allocated during the decode stage (ie: pushed to the Q)
 
-#### Store Queue
-Each entry in the STQ holds:
-- allocated bit
-- committed bit
-- address valid + address
-- data valid + data
-- optional ROB tag / age id
+### Store Queue
+Each STQ entry contains:
+- `valid`
+- `committed`
+- `addr_valid + addr`
+- `data_valid + data`
 
-A store cannot update memory until it reaches the commit/retire stage.
-Reason: before commit, the instruction might still be squashed (branch mispredict, exception, etc.).
-So the STQ entry goes through:
-1. Allocated in Decode
-2. Address + data filled (via `uopSTA`/`uopSTD` or combined)
-3. Marked “committed” at ROB commit
-4. Only then allowed to fire to memory (in program order)
-#### Load Queue
-Each load queue entry holds:
-- allocated bit
-- executed bit
-- sleeping bit
-- succeeded bit
-- address valid + address
-- store dependency mask
-- whether result came from memory or forwarding
-- optional age/ROB info
+#### Lifecycle of a Store
+1. **Allocation (Decode / Dispatch)**
+    - Entry is allocated (`valid = 1`)
+    - No address/data yet
+2. **Execution (Address/Data fill)**
+    - Address and data arrive independently
+    - `addr_valid` and `data_valid` set when ready
+3. **Commit**
+    - `committed = 1` when `ROB` commits the store
+4. **Fire to Memory (Strictly in-order)**
+    - Only the head entry can issue to memory
+    - Conditions:
+        - `valid`
+        - `committed`
+        - `addr_valid`
+        - `data_valid`    
+5. **Dequeue**
+    - After issuing to memory, the entry is removed
 
-Loads still have to respect ordering dynamically
-When a load executes:
-It checks older stores (via store mask)
-Three cases:
-1. No matching store address
-	- Safe → go to memory immediately
-2. Match + store data ready
-	- Forward data from STQ → done
-3. Match + store data NOT ready
-	- Load goes to sleep and retries later
+
+### Load Queue
+Each LDQ entry contains:
+- `valid`
+- `addr_valid + addr`
+- `pdst` (physical destination register)
+- `st_dep_mask` (store dependency mask)
+#### Lifecycle of a Load
+1. **Allocation (Decode / Dispatch)**
+    - Entry is allocated (`valid = 1`)
+    - Store dependency mask is initialized to all currently valid STQ entries
+    - Address and destination register not yet available
+2. **Register Rename / Destination Setup**
+    - Physical destination register (`pdst`) is written from RAT
+3. **Execution (Address Generation)**
+    - Load address is computed and written into the entry
+    - `addr_valid = 1`
+4. **Waiting on Store Dependencies**
+    - Load cannot execute until all bits in `st_dep_mask` are cleared
+    - Each bit is cleared when the corresponding store leaves the STQ (fires to memory)
+    - This enforces ordering with all older stores
+5. **Issue to Memory**
+    - Load is eligible when:
+        - `valid`
+        - `addr_valid`
+        - `st_dep_mask == 0`
+    - Read Request is sent to memory via the `LSU`
+6. **Writeback**
+    - Memory response is written to the register file:
+        - `rf_write_bus.en = 1`
+        - `rf_write_bus.addr = pdst`
+        - `rf_write_bus.data = mem_bus.rdata`
+7. **Dequeue**
+    - Entry is immediately invalidated after issuing to memory
+    - No replay or retry mechanism

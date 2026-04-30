@@ -12,7 +12,6 @@ module STQ (
 
   stq_entry_t entries[STQ_WIDTH];
 
-
   /// Count of valid entries in the queue
   logic [STQ_IDX_WIDTH:0] count;
 
