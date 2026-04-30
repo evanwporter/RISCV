@@ -63,11 +63,14 @@ Only a limited number of instructions are committed every cycle (ie popped off t
 ## Load/Store Queue
 
 > Entries in the Store Queue are allocated in the _Decode_ stage ( stq(i).valid is set). A “valid” bit denotes when an entry in the STQ holds a valid address and valid data (stq(i).bits.addr.valid and stq(i).bits.data.valid). Once a store instruction is committed, the corresponding entry in the Store Queue is marked as committed. The store is then free to be fired to the memory system at its convenience. Stores are fired to the memory in program order.
+> -[The Load/Store Unit (LSU) — RISCV-BOOM documentation](https://docs.boom-core.org/en/latest/sections/load-store-unit.html#store-instructions)
 
 > Entries in the Load Queue (LDQ) are allocated in the _Decode_ stage (`ldq(i).valid`). In **Decode**, each load entry is also given a _store mask_ (`ldq(i).bits.st\_dep\_mask`), which marks which stores in the Store Queue the given load depends on.
+> -[The Load/Store Unit (LSU) — RISCV-BOOM documentation](https://docs.boom-core.org/en/latest/sections/load-store-unit.html#load-instructions)
 
 The store Q are necessary because they ensure that the CPU executes the instruction in order. 
-Every cycle it checks whether the top of the STQ can be executed. If so? Then it pops and executes the store operation.
+Every cycle it checks whether the top of the STQ has been executed. If so? Then it pops and executes the store operation (a write operation).
+
 Popping an entry off the issue queue means marking the corresponding entry in the Load/Store Queue as ready to be executed (or at least the address or data is valid).
 
 The Load Queue executes whenever its ready, even if that means out of order.
@@ -191,43 +194,3 @@ Each LDQ entry contains:
     - On commit:
         - Entry is removed (`valid = 0`)
         - Head pointer advances
----
-
-## Stages
-
-### Fetch
-Instructions are fetched
--> Produced `fetched_IR`
-
-### Decode
-Decode pulls instructions out of the Fetch Buffer and generates the appropriate Micro-Op(s) (UOPs) to place into the pipeline. [2]
-
-### Rename
-The ISA, or “logical”, register specifiers (e.g. x0-x31) are then _renamed_ into “physical” register specifiers.
--> Produces `Physical Registers`
-
-### Dispatch
-Inserts instructions into IQ and ROB and Load/Store Queue (if memory operation)
-
-### Issue
-At the issue stage a configurable number of entries in the IQ are popped (if and only if these entries are ready) and sent to the execution pipeline.
-Once an instruction leaves the issue queue, it flows without stopping down to writeback. Then its held at commit.
-### Execute
-Once an instruction is issued onto the execute unit, it goes all the way to writeback.
-### Memory
-
-### Writeback
-
-ALU and load operations are written back to the register file. This also produces a Writeback tag which is broadcasted to the `Issue Queue`, the `ROB` and the `Renamer` Module.
-
-Writing back also outputs a `ROB` pointer which is used too mark the corresponding Rob entry as being not busy or ready 
-
-### Commit
-
-We commit & pop the top instruction on the ROB for as long as the top entry is not busy.
-
-Commit also means that the old physical register is pushed to the `Renamer` free list.
-
-On commit the architectural map is updated to the new register (overwriting the old register) (architectural map is like the RAT but only changed by commits). 
-
-Each stage needs to carry all the info needed for future stages (even if not needed for the current stage), but it can discard information that won’t be needed for future stages. 
