@@ -5,17 +5,17 @@
 The `x0` register is always zero.
 
 ### R-Type (Register-Register)
-![[R-Type.svg|695]]
+![[graphics/R-Type.svg|695]]
 ### I-Type (Immediate)
-![[I-Type.svg|696]]
+![[graphics/I-Type.svg|696]]
 ### S-Type (Store)
-![[S-Type.svg]]
+![[graphics/S-Type.svg]]
 ### J-Type (Jump)
-![[J-Type.svg]]
+![[graphics/J-Type.svg]]
 ### U-Type (Upper Immediate)
-![[U-Type.svg]]
+![[graphics/U-Type.svg]]
 ### B-Type (Branch)
-![[B-Type.svg]]
+![[graphics/B-Type.svg]]
 
 | Type   | Inputs   | Output |
 | ------ | -------- | ------ |
@@ -59,46 +59,8 @@ When execution finishes we mark the corresponding entry in the ROB as no longer 
 
 Only a limited number of instructions are committed every cycle (ie popped off the ROB) 
 
-## Stages
-
-### Fetch
-Instructions are fetched
--> Produced `fetched_IR`
-
-### Decode
-Decode pulls instructions out of the Fetch Buffer and generates the appropriate Micro-Op(s) (UOPs) to place into the pipeline. [2]
-
-### Rename
-The ISA, or “logical”, register specifiers (e.g. x0-x31) are then _renamed_ into “physical” register specifiers.
--> Produces `Physical Registers`
-
-### Dispatch
-Inserts instructions into IQ and ROB and Load/Store Queue (if memory operation)
-
-### Issue
-At the issue stage a configurable number of entries in the IQ are popped (if and only if these entries are ready) and sent to the execution pipeline.
-Once an instruction leaves the issue queue, it flows without stopping down to writeback. Then its held at commit.
-### Execute
-Once an instruction is issued onto the execute unit, it goes all the way to writeback.
-### Memory
-
-### Writeback
-
-ALU and load operations are written back to the register file. This also produces a Writeback tag which is broadcasted to the `Issue Queue`, the `ROB` and the `Renamer` Module.
-
-Writing back also outputs a `ROB` pointer which is used too mark the corresponding Rob entry as being not busy or ready 
-
-### Commit
-
-We commit & pop the top instruction on the ROB for as long as the top entry is not busy.
-
-Commit also means that the old physical register is pushed to the `Renamer` free list.
-
-On commit the architectural map is updated to the new register (overwriting the old register) (architectural map is like the RAT but only changed by commits). 
-
-Each stage needs to carry all the info needed for future stages (even if not needed for the current stage), but it can discard information that won’t be needed for future stages. 
-
-### Load/Store Queue
+---
+## Load/Store Queue
 
 > Entries in the Store Queue are allocated in the _Decode_ stage ( stq(i).valid is set). A “valid” bit denotes when an entry in the STQ holds a valid address and valid data (stq(i).bits.addr.valid and stq(i).bits.data.valid). Once a store instruction is committed, the corresponding entry in the Store Queue is marked as committed. The store is then free to be fired to the memory system at its convenience. Stores are fired to the memory in program order.
 
@@ -173,3 +135,99 @@ Each LDQ entry contains:
 7. **Dequeue**
     - Entry is immediately invalidated after issuing to memory
     - No replay or retry mechanism
+
+## Branch
+
+### Lifecycle of a Branch Instruction
+
+1. **Allocation (Decode / Dispatch)**
+    - Branch is decoded and dispatched
+    - ROB entry is allocated:
+        - `valid = 1`
+        - `busy = 1`
+        - `is_branch = 1`
+    - `branch_info` is initially **unresolved**
+2. **Execution (Branch Resolution)**
+    - Branch executes in the ALU pipeline
+    - Condition is evaluated (`branch_taken`)
+    - Target is computed `target = PC + imm`      
+    - Mispredict is detected `mispredict = taken && (predicted_target != actual_target)`
+    - Execution unit produces `branch_info`:
+        - `valid = 1`
+        - `rob_idx = branch ROB index`
+        - `target = computed target`
+        - `taken = branch outcome`
+        - `mispredict = detected mismatch`
+3. **Writeback to ROB**
+    - ROB receives `branch_info`
+    - Updates the corresponding entry:
+        - `branch_info` fields written
+        - `resolved = !mispredict`
+            - If correct → resolved immediately
+            - If mispredicted → left unresolved (will trigger flush)
+4. **Oldest Branch Tracking**
+    - ROB continuously scans for the oldest unresolved branch entry
+    - Condition:
+        - `valid`
+        - `is_branch`
+        - `!resolved`
+        - `!flushed`
+5. **Mispredict Detection -> Flush Trigger**
+    - If the oldest branch is valid and is a mis predict then set PC to `branch target` and flush
+6. **Flush Handling (Recovery)**
+	- ROB discard all entries younger than the branch. 
+	- The age is based on the `rob_index` (ie: when it entered the `ROB`)
+	- IQ, LDQ, and STQ do so as well (actually atm LDQ and STQ don't but that needs to be changed).
+    - All updates are blocked this cycle
+    - Marks the ROB branch entry as having resolved.
+	    - `resolved <= 1`
+7. **Commit (In-Order Retirement)**
+    - Once resolved:
+        - Branch behaves like a normal instruction
+    - Can commit when:
+        - At ROB head
+        - `!busy`
+        - `resolved = 1`
+    - On commit:
+        - Entry is removed (`valid = 0`)
+        - Head pointer advances
+---
+
+## Stages
+
+### Fetch
+Instructions are fetched
+-> Produced `fetched_IR`
+
+### Decode
+Decode pulls instructions out of the Fetch Buffer and generates the appropriate Micro-Op(s) (UOPs) to place into the pipeline. [2]
+
+### Rename
+The ISA, or “logical”, register specifiers (e.g. x0-x31) are then _renamed_ into “physical” register specifiers.
+-> Produces `Physical Registers`
+
+### Dispatch
+Inserts instructions into IQ and ROB and Load/Store Queue (if memory operation)
+
+### Issue
+At the issue stage a configurable number of entries in the IQ are popped (if and only if these entries are ready) and sent to the execution pipeline.
+Once an instruction leaves the issue queue, it flows without stopping down to writeback. Then its held at commit.
+### Execute
+Once an instruction is issued onto the execute unit, it goes all the way to writeback.
+### Memory
+
+### Writeback
+
+ALU and load operations are written back to the register file. This also produces a Writeback tag which is broadcasted to the `Issue Queue`, the `ROB` and the `Renamer` Module.
+
+Writing back also outputs a `ROB` pointer which is used too mark the corresponding Rob entry as being not busy or ready 
+
+### Commit
+
+We commit & pop the top instruction on the ROB for as long as the top entry is not busy.
+
+Commit also means that the old physical register is pushed to the `Renamer` free list.
+
+On commit the architectural map is updated to the new register (overwriting the old register) (architectural map is like the RAT but only changed by commits). 
+
+Each stage needs to carry all the info needed for future stages (even if not needed for the current stage), but it can discard information that won’t be needed for future stages. 
