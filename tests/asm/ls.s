@@ -3,6 +3,7 @@
 
 _start:
 
+test1:
   # PC = 0
   addi x1, x0, 42 # load data value to store
 
@@ -16,21 +17,45 @@ _start:
   lw x3, 0(x2) # load 42 into x3
 
   # PC = 16
-  addi x31, x0, 42
+  addi x31, x0, 42 # load expected value into x31
 
   # PC = 20
   bne  x3, x31, fail1
 
-pass:
+test2:
   # PC = 24
-  addi x10, x0, -1
+  addi x1, x0, 99
 
   # PC = 28
+  sw   x1, 4(x2)
+
+  # PC = 32
+  lw   x4, 4(x2)
+
+  # PC = 36
+  addi x31, x0, 99
+
+  # PC = 40
+  bne  x4, x31, fail2
+
+
+pass:
+  # PC = 44
+  addi x10, x0, -1
+
+  # PC = 48
   beq  x0, x0, pass
 
 fail1:
-  # PC = 32
+  # PC = 52
   addi x10, x0, 1
 
-  # PC = 36
+  # PC = 56
   beq  x0, x0, fail1
+
+fail2:
+  # PC = 60
+  addi x10, x0, 2
+
+  # PC = 64
+  beq  x0, x0, fail2

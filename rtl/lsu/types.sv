@@ -47,4 +47,10 @@ package riscv_lsu_types_pkg;
     word_t data;
   } stq_entry_t;
 
+  typedef enum {
+    BYTE,
+    HALFWORD,
+    WORD
+  } size_t;
+
 endpackage : riscv_lsu_types_pkg
