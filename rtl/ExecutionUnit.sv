@@ -11,7 +11,7 @@ module ExecutionUnit (
     IssueQueue_if.Execution_Side alu_iq_bus,
     IssueQueue_if.Execution_Side mem_iq_bus,
 
-    Commit_if.Execution_Side commit_bus,
+    ReorderBuffer_if.Execution_Side rob_bus,
 
     output branch_info_t branch_info,
 
@@ -174,20 +174,20 @@ module ExecutionUnit (
 
   always_ff @(posedge clk) begin
     if (reset) begin
-      commit_bus.executed_op_valid <= 1'b0;
+      rob_bus.executed_op_valid <= 0;
     end else begin
-      commit_bus.executed_op_valid <= 1'b0;
+      rob_bus.executed_op_valid <= 0;
 
       // ALU completion
       if (alu_iq_bus.issue_valid) begin
-        commit_bus.executed_op_valid[0]   <= 1'b1;
-        commit_bus.executed_op_rob_idx[0] <= alu_iq_bus.issue_entry.rob_idx;
+        rob_bus.executed_op_valid[0]   <= 1'b1;
+        rob_bus.executed_op_rob_idx[0] <= alu_iq_bus.issue_entry.rob_idx;
       end
 
       // Load/Store completion
       if (mem_iq_bus.issue_valid && (mem_uop.is_store || mem_uop.is_load)) begin
-        commit_bus.executed_op_valid[1]   <= 1'b1;
-        commit_bus.executed_op_rob_idx[1] <= mem_iq_bus.issue_entry.rob_idx;
+        rob_bus.executed_op_valid[1]   <= 1'b1;
+        rob_bus.executed_op_rob_idx[1] <= mem_iq_bus.issue_entry.rob_idx;
       end
     end
   end

@@ -94,8 +94,8 @@ module ReorderBuffer (
       for (int i = 0; i < 2; i++) begin
         // Mark entries that have been executed as not busy anymore 
         // (i.e. their results are ready and they can be committed)
-        if (commit_bus.executed_op_valid[i]) begin
-          entries[commit_bus.executed_op_rob_idx[i]].busy <= 1'b0;
+        if (bus.executed_op_valid[i]) begin
+          entries[bus.executed_op_rob_idx[i]].busy <= 1'b0;
         end
       end
 

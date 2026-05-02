@@ -167,7 +167,7 @@ module RISCV (
   ExecutionUnit eu (
       .clk(clk),
       .reset(reset),
-      .commit_bus(commit_bus),
+      .rob_bus(rob_bus),
       .alu_iq_bus(alu_iq_bus),
       .alu_a_bus(execution_alu_read_A_bus),
       .alu_b_bus(execution_alu_read_B_bus),
