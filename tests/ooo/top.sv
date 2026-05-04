@@ -6,7 +6,7 @@ module MockInstructionMemory (
     Memory_Bus_if.Slave_side bus
 );
 
-  word_t mem[256];
+  word_t mem[4096];
 
   string hex_file;
 

@@ -10,8 +10,15 @@ module Dispatcher (
 );
 
   always_comb begin
-    assert (rat_out.rob_idx == rob_bus.tail_ptr)
-    else $error("Error: ROB tail pointer and RAT output ROB index should match");
+    if (rat_out.advance_pipeline) begin
+      assert (rat_out.rob_idx == rob_bus.tail_ptr)
+      else
+        $error(
+            "Error: ROB tail pointer and RAT output ROB index should match, but got tail pointer %0d and RAT output ROB index %0d",
+            rob_bus.tail_ptr,
+            rat_out.rob_idx
+        );
+    end
   end
 
   // ROB entry construction
