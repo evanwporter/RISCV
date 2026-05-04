@@ -118,6 +118,9 @@ package riscv_regs_types_pkg;
 
     // For debugging purposes
     addr_t PC;
+
+    logic [ROB_IDX_WIDTH-1:0] rob_idx;
+
   } writeback_t;
 
   /// Stores the result of executing a branch instruction 

@@ -65,17 +65,21 @@ module LDQ (
       for (int i = 0; i < LDQ_WIDTH; i++) begin
         if (entries[i].valid && entries[i].st_dep_mask == '0 && entries[i].addr_valid) begin
           bus.mem_load_valid <= 1'b1;
-          bus.mem_load_addr  <= entries[i].addr;
-          bus.mem_load_pdst  <= entries[i].pdst;
+          bus.mem_load_addr <= entries[i].addr;
+          bus.mem_load_pdst <= entries[i].pdst;
+          bus.mem_load_rob_idx <= entries[i].rob_idx;
+          bus.mem_load_PC <= entries[i].PC;
 
           // TODO: maybe we want to keep this valid until its committed/load completes
-          entries[i].valid   <= 1'b0;
+          entries[i].valid <= 1'b0;
           break;
         end
       end
 
-      if (rat_out.uop.is_load) begin
+      if (rat_out.advance_pipeline && rat_out.uop.is_load) begin
         entries[rat_out.ldq_idx].pdst <= rat_out.Pd_new;
+        entries[rat_out.ldq_idx].rob_idx <= rat_out.rob_idx;
+        entries[rat_out.ldq_idx].PC <= rat_out.uop.pc;
       end
     end
   end

@@ -9,6 +9,11 @@ module Dispatcher (
     input rat_output_t rat_out
 );
 
+  always_comb begin
+    assert (rat_out.rob_idx == rob_bus.tail_ptr)
+    else $error("Error: ROB tail pointer and RAT output ROB index should match");
+  end
+
   // ROB entry construction
   always_comb begin
     rob_bus.push = 0;

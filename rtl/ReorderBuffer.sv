@@ -13,7 +13,8 @@ module ReorderBuffer (
     output branch_info_t oldest_branch_info,
 
     ReorderBuffer_if.ROB_Side bus,
-    Commit_if.ROB_Side commit_bus
+    Commit_if.ROB_Side commit_bus,
+    Writeback_if.Renamer_Side wb_bus
 );
 
   ROB_entry_t entries[ROB_WIDTH];
@@ -97,6 +98,10 @@ module ReorderBuffer (
       if (bus.STR_executed_op.executed_op_valid) begin
         entries[bus.STR_executed_op.executed_op_rob_idx].busy <= 1'b0;
       end
+
+      // if (wb_bus.mem_writeback.valid) begin
+      //   entries[wb_bus.mem_writeback.rob_idx].busy <= 1'b0;
+      // end
 
       // Clear commit bus before we start filling it with committed entries
       for (int i = 0; i < COMMIT_WIDTH; i++) begin

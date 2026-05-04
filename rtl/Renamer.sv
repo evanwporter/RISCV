@@ -141,6 +141,11 @@ module RegisterRenamer (
     end
   end
 
+  /// Next ROB index for checkpointing (the ROB index for this instruction is 
+  /// allocated in the next stage)
+  logic [ROB_IDX_WIDTH-1:0] next_rob_idx;
+  assign next_rob_idx = rat_out.advance_pipeline ? rob_bus.next_tail_ptr : rob_bus.tail_ptr;
+
   always_ff @(posedge clk) begin
 
     assert (free_list_next[0] == 1'b0)
@@ -220,6 +225,8 @@ module RegisterRenamer (
         rat_out.stq_idx <= decoder_out.stq_idx;
         rat_out.ldq_idx <= decoder_out.ldq_idx;
 
+        rat_out.rob_idx <= next_rob_idx;
+
       end
     end
   end
@@ -243,11 +250,6 @@ module RegisterRenamer (
       end
     end
   end
-
-  /// Next ROB index for checkpointing (the ROB index for this instruction is 
-  /// allocated in the next stage)
-  logic [ROB_IDX_WIDTH-1:0] next_rob_idx;
-  assign next_rob_idx = rat_out.advance_pipeline ? rob_bus.next_tail_ptr : rob_bus.tail_ptr;
 
   /// Create Checkpoint on branch instructions
   always_ff @(posedge clk) begin

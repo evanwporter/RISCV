@@ -214,6 +214,8 @@ package riscv_decoder_types_pkg;
     logic [STQ_IDX_WIDTH-1:0] stq_idx;
     logic [LDQ_IDX_WIDTH-1:0] ldq_idx;
 
+    logic [ROB_IDX_WIDTH-1:0] rob_idx;
+
   } rat_output_t;
 
   typedef struct packed {

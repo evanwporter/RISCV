@@ -58,6 +58,8 @@ module RegisterFile (
         wb_bus.alu_writeback.valid <= 1;
         wb_bus.alu_writeback.pdst <= alu_write_bus.addr;
         wb_bus.alu_writeback.PC <= alu_write_bus.PC;
+        wb_bus.alu_writeback.rob_idx <= alu_write_bus.rob_idx;
+
         if (alu_write_bus.addr != P0) begin
           regs[alu_write_bus.addr] <= alu_write_bus.data;
         end
@@ -69,6 +71,7 @@ module RegisterFile (
         wb_bus.mem_writeback.valid <= 1;
         wb_bus.mem_writeback.pdst <= mem_write_bus.addr;
         wb_bus.mem_writeback.PC <= mem_write_bus.PC;
+        wb_bus.mem_writeback.rob_idx <= mem_write_bus.rob_idx;
 
         if (mem_write_bus.addr != P0) begin
           regs[mem_write_bus.addr] <= mem_write_bus.data;

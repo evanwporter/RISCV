@@ -44,15 +44,23 @@ module LSU (
 
   always_ff @(posedge clk) begin
     if (reset) begin
-      rf_write_bus.en   <= 1'b0;
-      rf_write_bus.data <= 32'b0;
+      rf_write_bus.en <= 1'b0;
+      rf_write_bus.data <= '0;
       rf_write_bus.addr <= P0;
+      rf_write_bus.rob_idx <= '0;
+      rf_write_bus.PC <= '0;
     end else begin
       rf_write_bus.en <= 1'b0;
+      rf_write_bus.data <= '0;
+      rf_write_bus.addr <= P0;
+      rf_write_bus.rob_idx <= '0;
+      rf_write_bus.PC <= '0;
       if (ldq_bus.mem_load_valid) begin
-        rf_write_bus.en   <= 1'b1;
+        rf_write_bus.en <= 1'b1;
         rf_write_bus.data <= mem_bus.rdata;
         rf_write_bus.addr <= ldq_bus.mem_load_pdst;
+        rf_write_bus.rob_idx <= ldq_bus.mem_load_rob_idx;
+        rf_write_bus.PC <= ldq_bus.mem_load_PC;
       end
     end
   end

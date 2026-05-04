@@ -101,6 +101,8 @@ interface LDQ_if;
 
   physical_reg_t pdst;
 
+  logic [ROB_IDX_WIDTH-1:0] rob_idx;
+
   logic pop;
 
   logic write_addr;
@@ -123,14 +125,20 @@ interface LDQ_if;
 
   physical_reg_t mem_load_pdst;
 
-  modport Decoder_side(input tail_idx, output push, pdst);
+  logic [ROB_IDX_WIDTH-1:0] mem_load_rob_idx;
 
-  modport LSU_side(input mem_load_valid, mem_load_addr, mem_load_pdst);
+  addr_t mem_load_PC;
+
+  modport Decoder_side(input tail_idx, output push, pdst, rob_idx);
+
+  modport LSU_side(
+      input mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC
+  );
 
   modport LDQ_side(
-      input push, pdst, pop,
+      input push, pdst, rob_idx, pop,
       input write_addr, write_addr_idx, write_addr_value,
-      output mem_load_valid, mem_load_addr, mem_load_pdst,
+      output mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC,
       output tail_idx
   );
 

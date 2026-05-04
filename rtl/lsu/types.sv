@@ -25,6 +25,9 @@ package riscv_lsu_types_pkg;
 
     /// Older stores this load depends on
     logic [STQ_WIDTH-1:0] st_dep_mask;
+
+    logic [ROB_IDX_WIDTH-1:0] rob_idx;
+    addr_t PC;
   } ldq_entry_t;
 
   typedef struct packed {

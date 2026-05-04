@@ -161,7 +161,8 @@ module RISCV (
       .bus(rob_bus),
       .flush_info(flush_info),
       .branch_info(branch_info),
-      .oldest_branch_info(oldest_branch_info)
+      .oldest_branch_info(oldest_branch_info),
+      .wb_bus(wb_bus)
   );
 
   ExecutionUnit eu (
