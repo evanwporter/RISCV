@@ -1,6 +1,9 @@
 add_executable(test_ooo)
 target_sources(test_ooo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ooo_tb.cpp)
 
+find_package(reflectcpp CONFIG REQUIRED)
+target_link_libraries(test_ooo PRIVATE reflectcpp::reflectcpp)
+
 rv_add_rtl(
     TESTBENCHES
         ${CMAKE_CURRENT_SOURCE_DIR}/top.sv

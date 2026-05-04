@@ -13,6 +13,9 @@
 #include "snapshot.hpp"
 #include "types.hpp"
 
+#include <fstream>
+#include <rfl/json.hpp>
+
 namespace fs = std::filesystem;
 
 /// Global Verilator time variable
@@ -49,9 +52,11 @@ int main(int argc, char** argv) {
     assert(scope); // Check for nullptr if scope not found
     svSetScope(scope);
 
+    const fs::path output_dir = fs::path(__FILE__).parent_path();
+
     auto tfp = new VerilatedVcdC;
     top->trace(tfp, 999);
-    fs::path wave_path = fs::path(__FILE__).parent_path() / "bin_top_tb.vcd";
+    fs::path wave_path = output_dir / "bin_top_tb.vcd";
     tfp->open(wave_path.string().c_str());
 
     top->clk = 0;
@@ -74,8 +79,16 @@ int main(int argc, char** argv) {
 
     const auto root = top->rootp;
 
+    TraceFile trace_file;
+
     for (int cycle = 0; cycle < max_cycles && !contextp->gotFinish(); cycle++) {
         tick(top, tfp, contextp);
+
+        const TraceCycle trace_cycle = collect_trace_cycle(
+            top,
+            static_cast<uint64_t>(cycle + 1),
+            static_cast<uint64_t>(contextp->time()));
+        trace_file.cycles.push_back(trace_cycle);
 
         struct {
             int PC[32];
@@ -142,8 +155,22 @@ int main(int argc, char** argv) {
     }
 
     top->final();
-
     tfp->close();
+
+    {
+        fs::path json_path = output_dir / "ooo_trace.json";
+        std::ofstream json_out(json_path, std::ios::out | std::ios::trunc);
+
+        if (!json_out.is_open()) {
+            fprintf(stderr, "Failed to open JSON trace file: %s\n", json_path.string().c_str());
+        } else {
+            json_out << rfl::json::write(trace_file) << '\n';
+            json_out.flush();
+            json_out.close();
+
+            printf("Wrote JSON trace: %s\n", json_path.string().c_str());
+        }
+    }
 
     delete tfp;
     delete top;

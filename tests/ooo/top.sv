@@ -84,9 +84,56 @@ module ooo_top_tb (
     end
   endfunction
 
+  (* maybe_unused *)
+  function void get_rename_debug(
+      output int valid, output int pc, output int rs1_arch, output int rs2_arch, output int rd_arch,
+
+      output int ps1, output int ps2, output int pd_old, output int pd_new, output int ps1_ready,
+      output int ps2_ready, output int is_load, output int is_store, output int is_branch,
+
+      output int rob_idx, output int stq_idx, output int ldq_idx, output int watch_arch[6],
+      output int watch_phys[6], output int watch_ready[6], output int watch_busy[6]);
+    valid = dut.rat_out.advance_pipeline;
+    pc = dut.rat_out.uop.pc;
+
+    rs1_arch = dut.rat_out.uop.rs1;
+    rs2_arch = dut.rat_out.uop.rs2;
+    rd_arch = dut.rat_out.uop.rd;
+
+    ps1 = dut.rat_out.Ps1;
+    ps2 = dut.rat_out.Ps2;
+    pd_old = dut.rat_out.Pd_old;
+    pd_new = dut.rat_out.Pd_new;
+
+    ps1_ready = dut.rat_out.Ps1_ready;
+    ps2_ready = dut.rat_out.Ps2_ready;
+
+    is_load = dut.rat_out.uop.is_load;
+    is_store = dut.rat_out.uop.is_store;
+    is_branch = dut.rat_out.uop.is_branch;
+
+    rob_idx = dut.rob_bus.tail_ptr;
+    stq_idx = dut.rat_out.stq_idx;
+    ldq_idx = dut.rat_out.ldq_idx;
+
+    watch_arch[0] = 1;
+    watch_arch[1] = 2;
+    watch_arch[2] = 3;
+    watch_arch[3] = 4;
+    watch_arch[4] = 10;
+    watch_arch[5] = 31;
+
+    for (int i = 0; i < 6; i++) begin
+      watch_phys[i]  = dut.renamer.RAT[watch_arch[i]];
+      watch_busy[i]  = dut.renamer.busy_list[dut.renamer.RAT[watch_arch[i]]];
+      watch_ready[i] = ~dut.renamer.busy_list[dut.renamer.RAT[watch_arch[i]]];
+    end
+  endfunction
+
   export "DPI-C" function get_rob_entries;
   export "DPI-C" function get_alu_iq_entries;
   export "DPI-C" function get_mem_iq_entries;
+  export "DPI-C" function get_rename_debug;
 
   Memory_Bus_if instruction_bus ();
   Memory_Bus_if data_bus ();
@@ -125,7 +172,7 @@ module ooo_top_tb (
         $finish;
       end
 
-      if (cycle > 120) begin
+      if (cycle > 60) begin
         $display("TIMEOUT");
         $finish;
       end

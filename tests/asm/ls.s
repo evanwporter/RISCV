@@ -40,10 +40,10 @@ test2:
 
 
 pass:
-  # PC = 44
+  # PC = 44 / 24
   addi x10, x0, -1
 
-  # PC = 48
+  # PC = 48 / 28
   beq  x0, x0, pass
 
 fail1:
