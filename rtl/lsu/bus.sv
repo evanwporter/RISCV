@@ -99,19 +99,17 @@ interface LDQ_if;
   /// Decode allocation
   logic push;
 
-  physical_reg_t pdst;
+  /// Tail pointer for the next available slot in the LDQ
+  /// Recorded by the decoder and used to track the LDQ entry in the memory IQ.
+  logic [LDQ_IDX_WIDTH-1:0] tail_idx;
 
-  logic [ROB_IDX_WIDTH-1:0] rob_idx;
-
-  logic pop;
+  // -------------------------
+  // Record Load Address
+  // -------------------------
 
   logic write_addr;
   logic [LDQ_IDX_WIDTH-1:0] write_addr_idx;
   addr_t write_addr_value;
-
-  /// Tail pointer for the next available slot in the LDQ
-  /// Recorded by the decoder and used to track the LDQ entry in the memory IQ.
-  logic [LDQ_IDX_WIDTH-1:0] tail_idx;
 
   // ----------------------------
   // Memory Output
@@ -129,14 +127,14 @@ interface LDQ_if;
 
   addr_t mem_load_PC;
 
-  modport Decoder_side(input tail_idx, output push, pdst, rob_idx);
+  modport Decoder_side(input tail_idx, output push);
 
   modport LSU_side(
       input mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC
   );
 
   modport LDQ_side(
-      input push, pdst, rob_idx, pop,
+      input push,
       input write_addr, write_addr_idx, write_addr_value,
       output mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC,
       output tail_idx
