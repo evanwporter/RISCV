@@ -9,7 +9,7 @@
       "type": "cppvsdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/debug/tests/ooo/test_ooo.exe",
-      "args": ["+hex=${workspaceFolder}/add.hex"],
+      "args": ["+hex=${workspaceFolder}/tests/asm/add.hex"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": []

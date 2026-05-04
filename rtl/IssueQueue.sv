@@ -8,7 +8,8 @@ module IssueQueue (
     input logic reset,
     input flush_t flush_info,
     IssueQueue_if.IQ_Side bus,
-    Writeback_if.IQ_Side wb_bus
+    Writeback_if.IQ_Side wb_bus,
+    ReorderBuffer_if.ROB_Side rob_bus
 );
 
   IQ_entry_t entries[IQ_WIDTH];
@@ -52,7 +53,7 @@ module IssueQueue (
       for (int i = 0; i < IQ_WIDTH; i++) begin
         if (entries[i].valid) begin
           /// We invalidate all entries younger than the flush entry
-          if (is_younger(entries[i].rob_idx, flush_info.rob_idx)) begin
+          if (is_younger(entries[i].rob_idx, flush_info.rob_idx, rob_bus.head_ptr)) begin
             $display("Flushing IQ entry %d (rob_idx=%d), PC=%d", i, entries[i].rob_idx,
                      entries[i].uop.pc);
             $fflush();
@@ -72,7 +73,9 @@ module IssueQueue (
       // Find oldest ready entry
       for (int i = 0; i < IQ_WIDTH; i++) begin
         if (entries[i].valid && entries[i].prs1_ready && entries[i].prs2_ready) begin
-          if (!found || is_older(entries[i].rob_idx, entries[selected].rob_idx)) begin
+          if (!found || is_older(
+                  entries[i].rob_idx, entries[selected].rob_idx, rob_bus.head_ptr
+              )) begin
             selected = i[IQ_IDX_WIDTH-1:0];
             found = 1'b1;
           end

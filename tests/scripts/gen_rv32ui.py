@@ -26,7 +26,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--out",
-        default="rv32ui.ninja",
+        default="build.ninja",
         type=Path,
         help="Output Ninja file.",
     )
@@ -200,7 +200,7 @@ def main() -> int:
             elf = win_path(args.builddir / f"{base}.elf")
             dump = win_path(args.builddir / f"{base}.dump")
             binary = win_path(args.builddir / f"{base}.bin")
-            hex_file = f"{base}.hex"
+            hex_file = f"tests/asm/riscv/{base}.hex"
 
             # Use absolute source path for reliability.
             src_path = win_path(src)

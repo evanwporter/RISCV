@@ -55,7 +55,7 @@ module RegisterRenamer (
     result.valid = 0;
     result.idx   = P0;
 
-    for (int i = 0; i < NUM_PHYSICAL_REGS; i++) begin
+    for (int i = 1; i < NUM_PHYSICAL_REGS; i++) begin
       if (fl[i] && !result.valid) begin
         result.valid = 1;
         result.idx   = physical_reg_t'(i);
@@ -195,9 +195,35 @@ module RegisterRenamer (
             // x0 special case
             rat_out.Pd_old <= P0;
             rat_out.Pd_new <= P0;
-          end else if (next_free.valid) begin
+          end else if (next_free.valid && next_free.idx != P0) begin
             rat_out.Pd_old <= RAT[uop.rd];
             rat_out.Pd_new <= next_free.idx;
+
+            if (next_free.idx == RAT[uop.rd]) begin
+              $display("BAD FREE LIST:");
+              $display("  uop.rd=x%0d", uop.rd);
+              $display("  RAT[x%0d]=P%0d", uop.rd, RAT[uop.rd]);
+              $display("  next_free=P%0d", next_free.idx);
+              $display("  free_list[RAT[x%0d]]=%0b", uop.rd, free_list[RAT[uop.rd]]);
+              $display("  free_list_next[RAT[x%0d]]=%0b", uop.rd, free_list_next[RAT[uop.rd]]);
+
+              for (int r = 0; r < 32; r++) begin
+                if (RAT[r] == next_free.idx) begin
+                  $display("  P%0d is currently mapped by RAT[x%0d]", next_free.idx, r);
+                end
+              end
+
+              for (int c = 0; c < COMMIT_WIDTH; c++) begin
+                if (commit_bus.committed_rob_entries[c].valid) begin
+                  $display("  committing ROB PC=%0d rd=x%0d old=P%0d new=P%0d has_rd=%0b",
+                           commit_bus.committed_rob_entries[c].PC,
+                           commit_bus.committed_rob_entries[c].rd,
+                           commit_bus.committed_rob_entries[c].old_dest,
+                           commit_bus.committed_rob_entries[c].new_dest,
+                           commit_bus.committed_rob_entries[c].has_rd);
+                end
+              end
+            end
 
             assert (next_free.idx != RAT[uop.rd])
             else
@@ -210,9 +236,9 @@ module RegisterRenamer (
 
             busy_list[next_free.idx] <= 1'b1;
           end else begin
-            // no free register
-            rat_out.Pd_old <= RAT[uop.rd];
-            rat_out.Pd_new <= RAT[uop.rd];
+            // no free physical register: stall rename/dispatch
+            rat_out <= '0;
+            // keep RAT unchanged
           end
         end else begin
           // no destination instruction

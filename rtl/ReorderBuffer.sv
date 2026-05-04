@@ -17,6 +17,12 @@ module ReorderBuffer (
     Writeback_if.Renamer_Side wb_bus
 );
 
+  initial begin
+    if ((ROB_WIDTH <= 1) || ((ROB_WIDTH & (ROB_WIDTH - 1)) != 0)) begin
+      $fatal(1, "ROB_WIDTH must be a power of two. Got ROB_WIDTH=%0d", ROB_WIDTH);
+    end
+  end
+
   ROB_entry_t entries[ROB_WIDTH];
 
   logic [ROB_IDX_WIDTH-1:0] head, tail;
@@ -24,7 +30,7 @@ module ReorderBuffer (
   assign bus.head_entry = entries[head];
   assign bus.head_ptr = head;
   assign bus.tail_ptr = tail;
-  assign bus.next_tail_ptr = tail + 1;
+  assign bus.next_tail_ptr = bus.full ? tail : tail + 1;
 
   logic [ROB_IDX_WIDTH-1:0] next_tail;
   assign next_tail = tail + 1;
@@ -64,7 +70,7 @@ module ReorderBuffer (
       // Invalidate younger entries
       for (int i = 0; i < ROB_WIDTH; i++) begin
         if (entries[i].valid) begin
-          if (is_younger(i[ROB_IDX_WIDTH-1:0], flush_info.rob_idx)) begin
+          if (is_younger(i[ROB_IDX_WIDTH-1:0], flush_info.rob_idx, head)) begin
             $display("Flushing ROB entry %d, PC=%0d", i, entries[i].PC);
             $fflush();
             entries[i].valid <= 1'b0;

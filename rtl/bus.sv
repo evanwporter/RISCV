@@ -79,6 +79,8 @@ interface ReorderBuffer_if;
 
   modport Commit_Side(input head_entry, input head_ptr, input tail_ptr);
 
+  modport IQ_Side(input head_ptr);
+
 endinterface : ReorderBuffer_if
 
 /// TODO: Need to be expanded to account for the multiple ports of the RF

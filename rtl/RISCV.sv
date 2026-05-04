@@ -8,6 +8,7 @@ module RISCV (
     input logic clk,
     input logic reset,
     Memory_Bus_if.Master_side instruction_mem_bus,
+    input logic instr_valid,
     Memory_Bus_if.Master_side data_mem_bus
 );
 
@@ -94,21 +95,7 @@ module RISCV (
     end
   end
 
-  wire branch_detected = decoder_out.valid && decoder_out.uop.is_branch;
-
-  assign advance_pipeline = !(pipeline_stalled || flush_info.valid || just_released_reset);
-
-  // always_ff @(posedge clk) begin
-  //   if (reset) begin
-  //     pipeline_stalled <= 1'b0;
-  //   end else begin
-  //     if (branch_detected) begin
-  //       pipeline_stalled <= 1'b1;
-  //     end else if (branch_info.valid) begin
-  //       pipeline_stalled <= 1'b0;
-  //     end
-  //   end
-  // end
+  assign advance_pipeline = instr_valid && !(pipeline_stalled || flush_info.valid || just_released_reset);
 
   Decoder decoder (
       .clk(clk),
@@ -143,7 +130,8 @@ module RISCV (
       .reset(reset),
       .bus(alu_iq_bus),
       .wb_bus(wb_bus),
-      .flush_info(flush_info)
+      .flush_info(flush_info),
+      .rob_bus(rob_bus)
   );
 
   IssueQueue mem_iq (
@@ -151,7 +139,8 @@ module RISCV (
       .reset(reset),
       .bus(mem_iq_bus),
       .wb_bus(wb_bus),
-      .flush_info(flush_info)
+      .flush_info(flush_info),
+      .rob_bus(rob_bus)
   );
 
   ReorderBuffer rob (

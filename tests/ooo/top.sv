@@ -3,12 +3,14 @@ import riscv_types_pkg::*;
 import riscv_constants_pkg::*;
 
 module MockInstructionMemory (
-    Memory_Bus_if.Slave_side bus
+    Memory_Bus_if.Slave_side bus,
+    output logic instr_valid
 );
 
   word_t mem[4096];
 
   string hex_file;
+  int unsigned program_words;
 
   initial begin
     // Try to get from command line
@@ -20,8 +22,56 @@ module MockInstructionMemory (
     $readmemh(hex_file, mem);
   end
 
+  initial begin
+    string line;
+    int fd;
+    int code;
+    word_t dummy;
+
+    program_words = 0;
+
+    // Re-open file only to count instruction words.
+    fd = $fopen(hex_file, "r");
+    if (fd == 0) begin
+      $fatal(1, "Could not open hex file: %s", hex_file);
+    end
+
+    while (!$feof(
+        fd
+    )) begin
+      line = "";
+      code = $fgets(line, fd);
+
+      if (code != 0) begin
+        // Try to parse a hex word from the line.
+        // Lines that do not start with hex data are ignored.
+        if ($sscanf(line, "%h", dummy) == 1) begin
+          program_words++;
+        end
+      end
+    end
+
+    $fclose(fd);
+
+    $display("Loaded %0d instruction words", program_words);
+  end
+
   always_comb begin
-    bus.rdata = mem[bus.addr[9:2]];
+    int unsigned idx;
+
+    // instr_valid = 1'b1;
+    // bus.rdata = mem[bus.addr[31:2]];
+
+    idx = bus.addr[31:2];
+
+    instr_valid = idx < program_words;
+
+    if (idx < program_words) begin
+      bus.rdata = mem[idx];
+      $display("Instruction Memory read: addr=%0h, data=%0h", bus.addr, bus.rdata);
+    end else begin
+      bus.rdata = 32'h00000013;
+    end
   end
 
 endmodule : MockInstructionMemory
@@ -138,16 +188,22 @@ module ooo_top_tb (
   Memory_Bus_if instruction_bus ();
   Memory_Bus_if data_bus ();
 
+  logic instr_valid;
+
   // DUT
   RISCV dut (
       .clk(clk),
       .reset(reset),
       .instruction_mem_bus(instruction_bus),
-      .data_mem_bus(data_bus)
+      .data_mem_bus(data_bus),
+      .instr_valid(instr_valid)
   );
 
   // Memory
-  MockInstructionMemory instr_mem (.bus(instruction_bus));
+  MockInstructionMemory instr_mem (
+      .bus(instruction_bus),
+      .instr_valid(instr_valid)
+  );
 
   MockMemory data_mem (
       .clk  (clk),
@@ -172,7 +228,7 @@ module ooo_top_tb (
         $finish;
       end
 
-      if (cycle > 120) begin
+      if (cycle > 1000) begin
         $display("TIMEOUT");
         $finish;
       end

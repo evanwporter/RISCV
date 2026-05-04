@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
 
     top->reset = 0;
 
-    const int max_cycles = 500;
+    const int max_cycles = 1000;
 
     const auto root = top->rootp;
 
@@ -84,30 +84,30 @@ int main(int argc, char** argv) {
     for (int cycle = 0; cycle < max_cycles && !contextp->gotFinish(); cycle++) {
         tick(top, tfp, contextp);
 
-        const TraceCycle trace_cycle = collect_trace_cycle(
-            top,
-            static_cast<uint64_t>(cycle + 1),
-            static_cast<uint64_t>(contextp->time()));
-        trace_file.cycles.push_back(trace_cycle);
+        // const TraceCycle trace_cycle = collect_trace_cycle(
+        //     top,
+        //     static_cast<uint64_t>(cycle + 1),
+        //     static_cast<uint64_t>(contextp->time()));
+        // trace_file.cycles.push_back(trace_cycle);
 
         struct {
-            int PC[32];
-            int valid[32];
-            int busy[32];
+            int PC[256];
+            int valid[256];
+            int busy[256];
         } ROB;
 
         struct AIQ {
-            int PC[32];
-            int valid[32];
-            int prs1_ready[32];
-            int prs2_ready[32];
+            int PC[256];
+            int valid[256];
+            int prs1_ready[256];
+            int prs2_ready[256];
         } AIQ;
 
         struct MIQ {
-            int PC[32];
-            int valid[32];
-            int prs1_ready[32];
-            int prs2_ready[32];
+            int PC[256];
+            int valid[256];
+            int prs1_ready[256];
+            int prs2_ready[256];
         } MIQ;
 
         const auto snap = top->ooo_top_tb->get_snapshot();
@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
 
         // print ROB
         printf("  ROB: ");
-        for (int i = 0; i < 32; i++) {
+        for (int i = 0; i < 256; i++) {
             if (ROB.valid[i]) {
                 printf("[%d:%d:%s] ", i, ROB.PC[i], ROB.busy[i] ? "1" : "0");
             }
@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
 
         // print AIQ
         printf("  AIQ: ");
-        for (int i = 0; i < 32; i++) {
+        for (int i = 0; i < 256; i++) {
             if (AIQ.valid[i]) {
                 printf("[%d:%d,%s,%s] ", i, AIQ.PC[i], AIQ.prs1_ready[i] ? "1" : "0", AIQ.prs2_ready[i] ? "1" : "0");
             }
@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
 
         // print MIQ
         printf("  MIQ: ");
-        for (int i = 0; i < 32; i++) {
+        for (int i = 0; i < 256; i++) {
             if (MIQ.valid[i]) {
                 printf("[%d:%d,%s,%s] ", i, MIQ.PC[i], MIQ.prs1_ready[i] ? "1" : "0", MIQ.prs2_ready[i] ? "1" : "0");
             }
@@ -157,20 +157,20 @@ int main(int argc, char** argv) {
     top->final();
     tfp->close();
 
-    {
-        fs::path json_path = output_dir / "ooo_trace.json";
-        std::ofstream json_out(json_path, std::ios::out | std::ios::trunc);
+    // {
+    //     fs::path json_path = output_dir / "ooo_trace.json";
+    //     std::ofstream json_out(json_path, std::ios::out | std::ios::trunc);
 
-        if (!json_out.is_open()) {
-            fprintf(stderr, "Failed to open JSON trace file: %s\n", json_path.string().c_str());
-        } else {
-            json_out << rfl::json::write(trace_file) << '\n';
-            json_out.flush();
-            json_out.close();
+    //     if (!json_out.is_open()) {
+    //         fprintf(stderr, "Failed to open JSON trace file: %s\n", json_path.string().c_str());
+    //     } else {
+    //         json_out << rfl::json::write(trace_file) << '\n';
+    //         json_out.flush();
+    //         json_out.close();
 
-            printf("Wrote JSON trace: %s\n", json_path.string().c_str());
-        }
-    }
+    //         printf("Wrote JSON trace: %s\n", json_path.string().c_str());
+    //     }
+    // }
 
     delete tfp;
     delete top;
