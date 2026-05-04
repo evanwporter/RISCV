@@ -174,20 +174,27 @@ module ExecutionUnit (
 
   always_ff @(posedge clk) begin
     if (reset) begin
-      rob_bus.executed_op_valid <= 0;
+      rob_bus.ALU_executed_op <= '0;
+      rob_bus.STR_executed_op <= '0;
     end else begin
-      rob_bus.executed_op_valid <= 0;
+      rob_bus.ALU_executed_op <= '0;
+      rob_bus.STR_executed_op <= '0;
 
       // ALU completion
       if (alu_iq_bus.issue_valid) begin
-        rob_bus.executed_op_valid[0]   <= 1'b1;
-        rob_bus.executed_op_rob_idx[0] <= alu_iq_bus.issue_entry.rob_idx;
+        rob_bus.ALU_executed_op.executed_op_valid   <= 1'b1;
+        rob_bus.ALU_executed_op.executed_op_rob_idx <= alu_iq_bus.issue_entry.rob_idx;
       end
 
       // Load/Store completion
       if (mem_iq_bus.issue_valid && (mem_uop.is_store || mem_uop.is_load)) begin
-        rob_bus.executed_op_valid[1]   <= 1'b1;
-        rob_bus.executed_op_rob_idx[1] <= mem_iq_bus.issue_entry.rob_idx;
+        if (mem_uop.is_store) begin
+          rob_bus.STR_executed_op.executed_op_valid   <= 1'b1;
+          rob_bus.STR_executed_op.executed_op_rob_idx <= mem_iq_bus.issue_entry.rob_idx;
+        end else if (mem_uop.is_load) begin
+          rob_bus.STR_executed_op.executed_op_valid   <= 1'b1;
+          rob_bus.STR_executed_op.executed_op_rob_idx <= mem_iq_bus.issue_entry.rob_idx;
+        end
       end
     end
   end

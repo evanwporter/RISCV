@@ -90,13 +90,12 @@ module ReorderBuffer (
         // entries[branch_info.rob_idx].branch_info.flushed <= 1'b1;
       end
 
-      /// TODO : change this from a two two like # of IQs or something
-      for (int i = 0; i < 2; i++) begin
-        // Mark entries that have been executed as not busy anymore 
-        // (i.e. their results are ready and they can be committed)
-        if (bus.executed_op_valid[i]) begin
-          entries[bus.executed_op_rob_idx[i]].busy <= 1'b0;
-        end
+      if (bus.ALU_executed_op.executed_op_valid) begin
+        entries[bus.ALU_executed_op.executed_op_rob_idx].busy <= 1'b0;
+      end
+
+      if (bus.STR_executed_op.executed_op_valid) begin
+        entries[bus.STR_executed_op.executed_op_rob_idx].busy <= 1'b0;
       end
 
       // Clear commit bus before we start filling it with committed entries

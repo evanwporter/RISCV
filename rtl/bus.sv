@@ -33,9 +33,7 @@ endinterface : IssueQueue_if
 interface Commit_if;
   ROB_entry_t committed_rob_entries[COMMIT_WIDTH-1:0];
 
-  modport ROB_Side(
-      output committed_rob_entries
-  );
+  modport ROB_Side(output committed_rob_entries);
 
   modport Renamer_Side(input committed_rob_entries);
 
@@ -58,16 +56,16 @@ interface ReorderBuffer_if;
 
   // We allow `COMMIT_WIDTH` instructions to be committed at once, 
   // so we need to track which ones are executed and ready to commit
-  logic [1:0] executed_op_valid;
-  logic [ROB_IDX_WIDTH-1:0] executed_op_rob_idx[1:0];
+  executed_op_t ALU_executed_op;
+
+  executed_op_t STR_executed_op;
 
   modport Dispatcher_Side(input full, tail_ptr, output push, output push_entry);
 
   modport ROB_Side(
       input push,
       input push_entry,
-      input executed_op_valid,
-      input executed_op_rob_idx,
+      input ALU_executed_op, STR_executed_op,
       output full,
       output head_entry,
       output head_ptr,
@@ -77,7 +75,7 @@ interface ReorderBuffer_if;
 
   modport Renamer_Side(input tail_ptr, input next_tail_ptr);
 
-  modport Execution_Side(output executed_op_valid, output executed_op_rob_idx);
+  modport Execution_Side(output ALU_executed_op, STR_executed_op);
 
   modport Commit_Side(input head_entry, input head_ptr, input tail_ptr);
 

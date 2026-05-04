@@ -32,4 +32,9 @@ package riscv_rob_types_pkg;
 
   } ROB_entry_t;
 
+  typedef struct packed {
+    logic executed_op_valid;
+    logic [ROB_IDX_WIDTH-1:0] executed_op_rob_idx;
+  } executed_op_t;
+
 endpackage : riscv_rob_types_pkg

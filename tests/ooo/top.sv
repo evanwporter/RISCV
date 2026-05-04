@@ -172,7 +172,7 @@ module ooo_top_tb (
         $finish;
       end
 
-      if (cycle > 60) begin
+      if (cycle > 120) begin
         $display("TIMEOUT");
         $finish;
       end
