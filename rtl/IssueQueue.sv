@@ -116,7 +116,20 @@ module IssueQueue (
       // Push (dispatch)
       if (bus.push && found_free) begin
         entries[free_idx] <= bus.push_entry;
-        // entries[free_idx].valid <= 1'b1;
+
+        if (wb_bus.alu_writeback.valid) begin
+          if (bus.push_entry.prs1 == wb_bus.alu_writeback.pdst)
+            entries[free_idx].prs1_ready <= 1'b1;
+          if (bus.push_entry.prs2 == wb_bus.alu_writeback.pdst)
+            entries[free_idx].prs2_ready <= 1'b1;
+        end
+
+        if (wb_bus.mem_writeback.valid) begin
+          if (bus.push_entry.prs1 == wb_bus.mem_writeback.pdst)
+            entries[free_idx].prs1_ready <= 1'b1;
+          if (bus.push_entry.prs2 == wb_bus.mem_writeback.pdst)
+            entries[free_idx].prs2_ready <= 1'b1;
+        end
       end
     end
   end

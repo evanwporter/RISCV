@@ -141,6 +141,24 @@ module RegisterRenamer (
     end
   end
 
+  logic ps1_ready_now;
+  logic ps2_ready_now;
+
+  always_comb begin
+    ps1_ready_now = !uop.has_rs1 || !busy_list[RAT[rs1]];
+    ps2_ready_now = !uop.has_rs2 || !busy_list[RAT[rs2]];
+
+    if (wb_bus.alu_writeback.valid) begin
+      if (uop.has_rs1 && RAT[rs1] == wb_bus.alu_writeback.pdst) ps1_ready_now = 1'b1;
+      if (uop.has_rs2 && RAT[rs2] == wb_bus.alu_writeback.pdst) ps2_ready_now = 1'b1;
+    end
+
+    if (wb_bus.mem_writeback.valid) begin
+      if (uop.has_rs1 && RAT[rs1] == wb_bus.mem_writeback.pdst) ps1_ready_now = 1'b1;
+      if (uop.has_rs2 && RAT[rs2] == wb_bus.mem_writeback.pdst) ps2_ready_now = 1'b1;
+    end
+  end
+
   /// Next ROB index for checkpointing (the ROB index for this instruction is 
   /// allocated in the next stage)
   logic [ROB_IDX_WIDTH-1:0] next_rob_idx;
@@ -178,8 +196,8 @@ module RegisterRenamer (
         rat_out.Ps1 <= uop.has_rs1 ? RAT[rs1] : P0;
         rat_out.Ps2 <= uop.has_rs2 ? RAT[rs2] : P0;
 
-        rat_out.Ps1_ready <= uop.has_rs1 ? ~busy_list[RAT[rs1]] : 1'b1;
-        rat_out.Ps2_ready <= uop.has_rs2 ? ~busy_list[RAT[rs2]] : 1'b1;
+        rat_out.Ps1_ready <= ps1_ready_now;
+        rat_out.Ps2_ready <= ps2_ready_now;
 
         // Writeback results (mark destination registers as ready)
         if (wb_bus.alu_writeback.valid) begin

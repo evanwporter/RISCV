@@ -228,7 +228,7 @@ module ooo_top_tb (
         $finish;
       end
 
-      if (cycle > 1000) begin
+      if (cycle > 200) begin
         $display("TIMEOUT");
         $finish;
       end
