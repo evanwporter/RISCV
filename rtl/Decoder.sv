@@ -189,6 +189,8 @@ module Decoder (
           1'b0
         };
         uop_next.imm_kind = IMM_J;
+
+        $warning("Decoder: JAL instruction is not fully implemented yet.");
       end
 
       // JALR
@@ -199,6 +201,8 @@ module Decoder (
         uop_next.is_jump = 1'b1;
         uop_next.imm = {{20{decoded_IR[31]}}, decoded_IR[31:25], decoded_IR[11:7]};
         uop_next.imm_kind = IMM_I;
+
+        $warning("Decoder: JALR instruction is not fully implemented yet.");
       end
 
       // U-TYPE

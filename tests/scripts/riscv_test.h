@@ -46,15 +46,15 @@
 // clang-format on
 
 #define RVTEST_CODE_END \
-    1 : j 1b
+    1 : beq x0, x0, 1b
 
 #define RVTEST_PASS \
     li x10, -1;     \
-    1 : j 1b
+    1 : beq x0, x0, 1b
 
 #define RVTEST_FAIL       \
     addi x10, TESTNUM, 0; \
-    1 : j 1b
+    1 : beq x0, x0, 1b
 
 // clang-format off
 #define RVTEST_DATA_BEGIN \

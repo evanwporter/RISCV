@@ -7,12 +7,14 @@
 #include "Vooo__Dpi.h"
 #include "Vooo___024root.h"
 #include "Vooo_ooo_top_tb.h"
+#include "snapshot.hpp"
 #include "util.hpp"
 
 #include <cassert>
 #include <cstddef>
 #include <cstdio>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -24,6 +26,44 @@ double sc_time_stamp() {
     return static_cast<double>(g_verilator_time);
 }
 
+static fs::path make_failure_log_path(const fs::path& hex_file) {
+    fs::path dir = fs::path { "ooo_test_logs" };
+    fs::create_directories(dir);
+
+    std::string name = hex_file.filename().stem().string();
+    for (char& c : name) {
+        if (!std::isalnum(static_cast<unsigned char>(c))) {
+            c = '_';
+        }
+    }
+
+    return dir / (name + ".log");
+}
+
+static void write_failure_log(
+    const fs::path& log_path,
+    const fs::path& hex_file,
+    int cycle,
+    int a0,
+    const std::string& reason,
+    const std::string& stdout_text,
+    const std::string& stderr_text) {
+
+    std::ofstream out(log_path, std::ios::out | std::ios::trunc);
+
+    out << "Test: " << hex_file.string() << "\n";
+    out << "Reason: " << reason << "\n";
+    out << "Cycle: " << cycle << "\n";
+    out << "a0: " << a0 << "\n";
+    out << "\n";
+
+    out << "========== STDOUT ==========\n";
+    out << stdout_text << "\n";
+
+    out << "========== STDERR ==========\n";
+    out << stderr_text << "\n";
+}
+
 class OooSim {
 public:
     OooSim() = default;
@@ -32,7 +72,7 @@ public:
         destroy();
     }
 
-    void create(int argc, char** argv, bool trace = false) {
+    void create(int argc, char** argv, bool trace = true) {
         destroy();
 
         Verilated::threadContextp(nullptr);
@@ -55,7 +95,7 @@ public:
         if (trace_) {
             tfp_ = new VerilatedVcdC;
             top_->trace(tfp_, 999);
-            tfp_->open("ooo_gtest.vcd");
+            tfp_->open((fs::path(__FILE__).parent_path() / "ooo_gtest.vcd").string().c_str());
         }
 
         reset();
@@ -125,6 +165,18 @@ public:
         return context_->gotFinish();
     }
 
+    CycleSnapshot get_cycle_snapshot() const {
+        const auto snap = top_->ooo_top_tb->get_snapshot();
+        return CycleSnapshot {
+            .Fetched_PC = snap.__PVT__Fetched_PC,
+            .Decoded_PC = snap.__PVT__Decoded_PC,
+            .Renamed_PC = snap.__PVT__Renamed_PC,
+            .Dispatched_PC = snap.__PVT__Dispatched_PC,
+            .Issued_PC = snap.__PVT__Issued_PC,
+            .Executed_PC = snap.__PVT__Executed_PC
+        };
+    }
+
 private:
     void eval_dump() {
         top_->eval();
@@ -144,12 +196,6 @@ private:
     bool trace_ = false;
 };
 
-struct RiscvTestCase {
-    const char* name;
-    const char* hex;
-    int timeout_cycles;
-};
-
 class RV32UITest : public ::testing::TestWithParam<fs::path> {
 protected:
     void TearDown() override {
@@ -162,8 +208,8 @@ protected:
 TEST_P(RV32UITest, Passes) {
     const fs::path hex_file = GetParam();
 
-    std::string hex_arg = std::string("+hex=") + hex_file.string();
-    constexpr int timeout_cycles = 1000;
+    std::string hex_arg = std::string("+hex=") + hex_file.generic_string();
+    constexpr int timeout_cycles = 250;
 
     std::vector<std::string> args_storage;
     args_storage.emplace_back("ooo_gtest");
@@ -176,35 +222,139 @@ TEST_P(RV32UITest, Passes) {
 
     int argc = static_cast<int>(argv.size());
 
-    sim.create(argc, argv.data(), false);
+    testing::internal::CaptureStdout();
+    testing::internal::CaptureStderr();
+
+    sim.create(argc, argv.data(), true);
+
+    bool passed = false;
+    bool failed = false;
+    std::string failure_reason;
 
     for (int i = 0; i < timeout_cycles; ++i) {
         sim.tick();
 
+        struct {
+            int PC[256];
+            int valid[256];
+            int busy[256];
+        } ROB;
+
+        struct AIQ {
+            int PC[256];
+            int valid[256];
+            int prs1_ready[256];
+            int prs2_ready[256];
+        } AIQ;
+
+        struct MIQ {
+            int PC[256];
+            int valid[256];
+            int prs1_ready[256];
+            int prs2_ready[256];
+        } MIQ;
+
+        const auto snapshot = sim.get_cycle_snapshot();
+
+        get_rob_entries(ROB.PC, ROB.valid, ROB.busy);
+        get_alu_iq_entries(AIQ.PC, AIQ.valid, AIQ.prs1_ready, AIQ.prs2_ready);
+        get_mem_iq_entries(MIQ.PC, MIQ.valid, MIQ.prs1_ready, MIQ.prs2_ready);
+
+        printf("Cycle %d: F = %d, Dc = %d, R = %d, Dp = %d, I = %d, E = %d\n", sim.cycle() + 1, snapshot.Fetched_PC, snapshot.Decoded_PC, snapshot.Renamed_PC, snapshot.Dispatched_PC, snapshot.Issued_PC, snapshot.Executed_PC);
+
+        // print ROB
+        printf("  ROB: ");
+        for (int i = 0; i < 256; i++) {
+            if (ROB.valid[i]) {
+                printf("[%d:%d:%s] ", i, ROB.PC[i], ROB.busy[i] ? "1" : "0");
+            }
+        }
+        printf("\n");
+
+        // print AIQ
+        printf("  AIQ: ");
+        for (int i = 0; i < 256; i++) {
+            if (AIQ.valid[i]) {
+                printf("[%d:%d,%s,%s] ", i, AIQ.PC[i], AIQ.prs1_ready[i] ? "1" : "0", AIQ.prs2_ready[i] ? "1" : "0");
+            }
+        }
+        printf("\n");
+
+        // print MIQ
+        printf("  MIQ: ");
+        for (int i = 0; i < 256; i++) {
+            if (MIQ.valid[i]) {
+                printf("[%d:%d,%s,%s] ", i, MIQ.PC[i], MIQ.prs1_ready[i] ? "1" : "0", MIQ.prs2_ready[i] ? "1" : "0");
+            }
+        }
+        printf("\n");
+
         const int status = sim.status();
 
         if (status == 1) {
-            SUCCEED() << hex_file.filename().stem().string() << " passed at cycle " << sim.cycle();
-            return;
+            passed = true;
+            break;
         }
 
         if (status == -1) {
-            FAIL() << hex_file.filename().stem().string()
-                   << " failed at cycle " << sim.cycle()
-                   << ", failing test number = " << sim.a0();
+            failed = true;
+
+            std::ostringstream oss;
+            oss << hex_file.filename().stem().string()
+                << " failed at cycle " << sim.cycle()
+                << ", failing test number = " << sim.a0();
+
+            failure_reason = oss.str();
+            break;
         }
 
         if (sim.gotFinish()) {
-            FAIL() << hex_file.filename().stem().string()
-                   << " called $finish before pass/fail status was visible"
-                   << ", cycle = " << sim.cycle()
-                   << ", a0 = " << sim.a0();
+            failed = true;
+
+            std::ostringstream oss;
+            oss << hex_file.filename().stem().string()
+                << " called $finish before pass/fail status was visible"
+                << ", cycle = " << sim.cycle()
+                << ", a0 = " << sim.a0();
+
+            failure_reason = oss.str();
+            break;
         }
     }
 
-    FAIL() << hex_file.filename().stem().string()
-           << " timed out after " << timeout_cycles
-           << " cycles, a0 = " << sim.a0();
+    if (!passed && !failed) {
+        failed = true;
+
+        std::ostringstream oss;
+        oss << hex_file.filename().stem().string()
+            << " timed out after " << timeout_cycles
+            << " cycles, a0 = " << sim.a0();
+
+        failure_reason = oss.str();
+    }
+
+    const std::string stdout_text = testing::internal::GetCapturedStdout();
+    const std::string stderr_text = testing::internal::GetCapturedStderr();
+
+    if (passed) {
+        SUCCEED() << hex_file.filename().stem().string()
+                  << " passed at cycle " << sim.cycle();
+        return;
+    }
+
+    const fs::path log_path = make_failure_log_path(hex_file);
+
+    write_failure_log(
+        log_path,
+        hex_file,
+        sim.cycle(),
+        sim.a0(),
+        failure_reason,
+        stdout_text,
+        stderr_text);
+
+    FAIL() << failure_reason
+           << "\nLog written to: " << fs::absolute(log_path).string();
 }
 
 static const fs::path test_dir = fs::path { TEST_DIR };
@@ -218,7 +368,7 @@ static const std::vector<fs::path> riscv_hex_files = collect_files_in_directory(
     test_dir / "asm" / "riscv",
     ".hex",
     {
-        "rv32ui-andi.hex",
+        // "rv32ui-andi.hex",
         "rv32ui-auipc.hex",
         "rv32ui-beq.hex",
         "rv32ui-bge.hex",
