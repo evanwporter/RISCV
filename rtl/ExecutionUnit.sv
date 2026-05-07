@@ -58,7 +58,24 @@ module ExecutionUnit (
 
       alu_b_bus.en   = 1'b1;
       alu_b_bus.addr = alu_iq_bus.issue_entry.prs2;
-      alu_bus.op_b   = alu_uop.imm_kind == IMM_I ? alu_uop.imm : alu_b_bus.data;
+      alu_bus.op_b   = alu_b_bus.data;
+
+      case (alu_uop.imm_kind)
+        IMM_I: begin
+          alu_bus.op_b = alu_uop.imm;
+        end
+
+        IMM_U: begin
+          alu_bus.op_b = alu_uop.imm;
+
+          if (alu_uop.inst.opcode == OP_U_AUIPC_TYPE) alu_bus.op_a = alu_uop.pc;
+          else alu_bus.op_a = 32'b0;  // LUI
+        end
+
+        default: begin
+          // R-type uses register operands
+        end
+      endcase
     end
   end
 

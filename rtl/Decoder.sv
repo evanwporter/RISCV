@@ -203,13 +203,16 @@ module Decoder (
 
       // U-TYPE
       OP_U_LUI_TYPE, OP_U_AUIPC_TYPE: begin
-        uop_next.has_rd = 1'b1;
-        uop_next.imm = {decoded_IR[31:12], 12'b0};
+        uop_next.has_rd   = 1'b1;
+        uop_next.is_alu   = 1'b1;
+        uop_next.alu_op   = OP_ADD;
+        uop_next.imm      = {decoded_IR[31:12], 12'b0};
         uop_next.imm_kind = IMM_U;
       end
 
       OP_I_FENCE_TYPE, OP_I_ECALL_TYPE: begin
         // TODO
+        $warning("Decoder: Fence and ecall instructions are not fully implemented yet.");
       end
 
     endcase
