@@ -205,7 +205,25 @@ def main() -> int:
             # Use absolute source path for reliability.
             src_path = win_path(src)
 
-            n.build(elf, "rvtest_elf", src_path)
+            # Many rv32ui tests include the corresponding rv64ui test body.
+            # Add it as an implicit Ninja dependency so changing rv64ui/add.S
+            # rebuilds rv32ui-add.elf.
+            rv64_src = rv64ui_dir / src.name
+            implicit_deps: list[str] = []
+
+            if rv64_src.exists():
+                implicit_deps.append(win_path(rv64_src))
+
+            implicit_deps.append(win_path(env_dir / "riscv_test.h"))
+            implicit_deps.append(win_path(macros_dir / "test_macros.h"))
+
+            n.build(
+                elf,
+                "rvtest_elf",
+                src_path,
+                implicit=implicit_deps,
+            )
+
             n.build(dump, "dump", elf)
             n.build(binary, "objcopy_bin", elf)
             n.build(hex_file, "bin_to_hex", binary)
