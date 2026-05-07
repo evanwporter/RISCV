@@ -75,13 +75,13 @@ int main(int argc, char** argv) {
 
     top->reset = 0;
 
-    const int max_cycles = 1000;
+    int cycle = 0;
 
     const auto root = top->rootp;
 
     TraceFile trace_file;
 
-    for (int cycle = 0; cycle < max_cycles && !contextp->gotFinish(); cycle++) {
+    while (!contextp->gotFinish()) {
         tick(top, tfp, contextp);
 
         // const TraceCycle trace_cycle = collect_trace_cycle(
@@ -152,6 +152,8 @@ int main(int argc, char** argv) {
             }
         }
         printf("\n");
+
+        cycle++;
     }
 
     top->final();

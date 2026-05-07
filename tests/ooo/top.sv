@@ -211,7 +211,17 @@ module ooo_top_tb (
       .bus  (data_bus)
   );
 
-  int cycle = 0;
+  int unsigned cycle = 0;
+  int unsigned timeout_cycles;
+
+  initial begin
+    if (!$value$plusargs("timeout=%d", timeout_cycles)) begin
+      timeout_cycles = 1000;
+    end
+
+    $display("Using timeout: %0d cycles", timeout_cycles);
+  end
+
 
   always @(posedge clk) begin
     if (!reset) begin
@@ -228,7 +238,7 @@ module ooo_top_tb (
         $finish;
       end
 
-      if (cycle > 200) begin
+      if (cycle > timeout_cycles) begin
         $display("TIMEOUT");
         $finish;
       end
