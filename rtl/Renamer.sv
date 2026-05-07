@@ -110,10 +110,13 @@ module RegisterRenamer (
   always_comb begin
     free_list_next = free_list;
 
-    if (decoder_out.valid && !flush_info.valid) begin
-      // Free committed regs
+    // Always free committed old physical registers.
+    if (!flush_info.valid) begin
       free_list_next |= get_freed_list();
+    end
 
+    // Allocate only when actually renaming a valid destination.
+    if (decoder_out.valid && !flush_info.valid) begin
       // Allocate new reg
       if (uop.has_rd && uop.rd != x0 && next_free.valid) begin
         free_list_next[next_free.idx] = 1'b0;
@@ -186,6 +189,15 @@ module RegisterRenamer (
         else $error("RAT[%0d] maps to free physical register P%0d", i, RAT[i]);
       end
 
+      // Writeback results (mark destination registers as ready)
+      if (wb_bus.alu_writeback.valid) begin
+        busy_list[wb_bus.alu_writeback.pdst] <= 1'b0;
+      end
+
+      if (wb_bus.mem_writeback.valid) begin
+        busy_list[wb_bus.mem_writeback.pdst] <= 1'b0;
+      end
+
       if (flush_info.valid) begin
         RAT <= checkpoints[flush_info.rob_idx].RAT;
         busy_list <= '0; // on recovery, mark all busy bits as 0 since we don't know which instructions were in-flight
@@ -198,15 +210,6 @@ module RegisterRenamer (
 
         rat_out.Ps1_ready <= ps1_ready_now;
         rat_out.Ps2_ready <= ps2_ready_now;
-
-        // Writeback results (mark destination registers as ready)
-        if (wb_bus.alu_writeback.valid) begin
-          busy_list[wb_bus.alu_writeback.pdst] <= 1'b0;
-        end
-
-        if (wb_bus.mem_writeback.valid) begin
-          busy_list[wb_bus.mem_writeback.pdst] <= 1'b0;
-        end
 
         if (uop.has_rd) begin
           if (uop.rd == x0) begin
