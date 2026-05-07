@@ -212,36 +212,36 @@ module ooo_top_tb (
   );
 
   int unsigned cycle = 0;
-  int unsigned timeout_cycles;
 
-  initial begin
-    if (!$value$plusargs("timeout=%d", timeout_cycles)) begin
-      timeout_cycles = 1000;
+  (* maybe_unused *)
+  function int unsigned get_cycle();  /*verilator public*/
+    return cycle;
+  endfunction
+
+  (* maybe_unused *)
+  function int get_a0();  /*verilator public*/
+    return dut.rf.regs[dut.renamer.ARAT[10]];
+  endfunction
+
+  (* maybe_unused *)
+  function int get_test_status();  /*verilator public*/
+    int a0;
+    a0 = dut.rf.regs[dut.renamer.ARAT[10]];
+
+    if (a0 == -1) begin
+      return 1;  // pass
+    end else if (a0 != 0) begin
+      return -1;  // fail
+    end else begin
+      return 0;  // still running
     end
-
-    $display("Using timeout: %0d cycles", timeout_cycles);
-  end
-
+  endfunction
 
   always @(posedge clk) begin
-    if (!reset) begin
-      cycle++;
-
-      // x10 = a0 (your pass/fail register)
-      if (dut.rf.regs[dut.renamer.ARAT[10]] == -1) begin
-        $display("PASS at cycle %0d", cycle);
-        $finish;
-      end
-
-      if (dut.rf.regs[dut.renamer.ARAT[10]] != 32'd0 && dut.rf.regs[dut.renamer.ARAT[10]] != -1) begin
-        $display("FAIL at cycle %0d, test = %0d", cycle, dut.rf.regs[dut.renamer.ARAT[10]]);
-        $finish;
-      end
-
-      if (cycle > timeout_cycles) begin
-        $display("TIMEOUT");
-        $finish;
-      end
+    if (reset) begin
+      cycle <= 0;
+    end else begin
+      cycle <= cycle + 1;
     end
   end
 

@@ -1,8 +1,14 @@
 add_executable(test_ooo)
-target_sources(test_ooo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ooo_tb.cpp)
+target_sources(test_ooo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ooo.cpp ${CMAKE_CURRENT_SOURCE_DIR}/util.cpp)
 
 find_package(reflectcpp CONFIG REQUIRED)
 target_link_libraries(test_ooo PRIVATE reflectcpp::reflectcpp)
+
+enable_testing()
+find_package(GTest CONFIG REQUIRED)
+target_link_libraries(test_ooo PRIVATE GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
+
+add_test(AllTestsInMain test_ooo)
 
 rv_add_rtl(
     TESTBENCHES
