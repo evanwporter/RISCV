@@ -167,7 +167,7 @@ module Decoder (
         };
         uop_next.imm_kind = IMM_B;
 
-        // For now we will just predict not taken for branches.
+        // TODO: Predict other branches. For now we will just predict not taken for branches.
         uop_next.predicted_taken = 1'b0;
 
         uop_next.branch_op = branch_kind_t'(decoded_IR.extra.b_type.funct3);
@@ -186,8 +186,6 @@ module Decoder (
           1'b0
         };
         uop_next.imm_kind = IMM_J;
-
-        $warning("Decoder: JAL instruction is not fully implemented yet.");
       end
 
       // JALR
@@ -198,8 +196,6 @@ module Decoder (
         uop_next.is_jump = 1'b1;
         uop_next.imm = {{20{decoded_IR[31]}}, decoded_IR[31:20]};
         uop_next.imm_kind = IMM_I;
-
-        $warning("Decoder: JALR instruction is not fully implemented yet.");
       end
 
       // U-TYPE

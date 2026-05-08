@@ -122,10 +122,6 @@ module ReorderBuffer (
         entries[bus.STR_executed_op.executed_op_rob_idx].busy <= 1'b0;
       end
 
-      // if (wb_bus.mem_writeback.valid) begin
-      //   entries[wb_bus.mem_writeback.rob_idx].busy <= 1'b0;
-      // end
-
       // Clear commit bus before we start filling it with committed entries
       for (int i = 0; i < COMMIT_WIDTH; i++) begin
         commit_bus.committed_rob_entries[i] <= '0;
@@ -175,14 +171,14 @@ module ReorderBuffer (
 
     if (bus.alu_wb_check_valid) begin
       bus.alu_wb_check_ok =
-      entries[bus.alu_wb_check_rob_idx].valid &&
-      entries[bus.alu_wb_check_rob_idx].PC == bus.alu_wb_check_PC;
+        entries[bus.alu_wb_check_rob_idx].valid &&
+        entries[bus.alu_wb_check_rob_idx].PC == bus.alu_wb_check_PC;
     end
 
     if (bus.mem_wb_check_valid) begin
       bus.mem_wb_check_ok =
-      entries[bus.mem_wb_check_rob_idx].valid &&
-      entries[bus.mem_wb_check_rob_idx].PC == bus.mem_wb_check_PC;
+        entries[bus.mem_wb_check_rob_idx].valid &&
+        entries[bus.mem_wb_check_rob_idx].PC == bus.mem_wb_check_PC;
     end
   end
 

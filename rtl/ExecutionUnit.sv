@@ -112,41 +112,42 @@ module ExecutionUnit (
     endcase
   end
 
+  /// Is the currently issued ALU op still alive in the ROB?
+  /// If true, then the ALU result belongs to a currently valid
+  /// instruction, and not one that has been killed due to a
+  /// mispredicted branch or exception.
   logic alu_live;
 
   always_comb begin
-    // ------------------------------------------------------------
-    // Defaults
-    // ------------------------------------------------------------
-    rob_bus.alu_wb_check_valid   = 1'b0;
+    rob_bus.alu_wb_check_valid = 1'b0;
     rob_bus.alu_wb_check_rob_idx = '0;
-    rob_bus.alu_wb_check_PC      = '0;
+    rob_bus.alu_wb_check_PC = '0;
 
-    alu_write_bus.en             = 1'b0;
-    alu_write_bus.addr           = P0;
-    alu_write_bus.data           = '0;
-    alu_write_bus.rob_idx        = '0;
-    alu_write_bus.PC             = '0;
+    alu_write_bus.en = 1'b0;
+    alu_write_bus.addr = P0;
+    alu_write_bus.data = '0;
+    alu_write_bus.rob_idx = '0;
+    alu_write_bus.PC = '0;
 
-    alu_live                     = 1'b0;
+    alu_live = 1'b0;
 
     // Check whether the issued ALU/IQ entry is still alive in the ROB.
     if (alu_iq_bus.issue_valid) begin
-      rob_bus.alu_wb_check_valid   = 1'b1;
+      rob_bus.alu_wb_check_valid = 1'b1;
       rob_bus.alu_wb_check_rob_idx = alu_iq_bus.issue_entry.rob_idx;
-      rob_bus.alu_wb_check_PC      = alu_uop.pc;
+      rob_bus.alu_wb_check_PC = alu_uop.pc;
 
-      alu_live                     = rob_bus.alu_wb_check_ok && !flush_info.valid;
+      alu_live = rob_bus.alu_wb_check_ok && !flush_info.valid;
     end
 
     // Only real ALU ops write a physical destination.
     // Branches do not write back to the register file.
     if ((alu_exec || jump_exec) && alu_live && alu_iq_bus.issue_entry.pdst != P0) begin
-      alu_write_bus.en      = 1'b1;
-      alu_write_bus.addr    = alu_iq_bus.issue_entry.pdst;
-      alu_write_bus.data    = jump_exec ? (alu_uop.pc + 32'd4) : alu_bus.out;
+      alu_write_bus.en = 1'b1;
+      alu_write_bus.addr = alu_iq_bus.issue_entry.pdst;
+      alu_write_bus.data = jump_exec ? (alu_uop.pc + 32'd4) : alu_bus.out;
       alu_write_bus.rob_idx = alu_iq_bus.issue_entry.rob_idx;
-      alu_write_bus.PC      = alu_uop.pc;
+      alu_write_bus.PC = alu_uop.pc;
     end
   end
 

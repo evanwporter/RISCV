@@ -20,6 +20,8 @@ package riscv_rob_types_pkg;
     /// if its a store.
     logic [STQ_IDX_WIDTH-1:0] stq_idx;
 
+    logic [ROB_IDX_WIDTH-1:0] rob_idx;
+
     addr_t PC;
 
     branch_info_t branch_info;

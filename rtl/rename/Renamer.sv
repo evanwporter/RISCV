@@ -4,6 +4,7 @@ import riscv_regs_types_pkg::*;
 import riscv_decoder_types_pkg::*;
 import riscv_renamer_types_pkg::*;
 import riscv_rob_types_pkg::*;
+import riscv_util_pkg::*;
 import riscv_renamer_util_pkg::*;
 
 `include "riscv/util.svh"
@@ -82,7 +83,6 @@ module RegisterRenamer (
   assign next_rob_idx = rat_out.advance_pipeline ? rob_bus.next_tail_ptr : rob_bus.tail_ptr;
 
   always_comb begin
-    // Defaults: hold state
     RAT_next       = RAT;
     ARAT_next      = ARAT;
     free_list_next = free_list;
@@ -90,8 +90,14 @@ module RegisterRenamer (
     rat_out_next   = '0;
 
     // ------------------------------------------------------------
-    // Highest priority: flush
+    // Flush path
     // ------------------------------------------------------------
+    // On a flush, we must restore the RAT and free list to the state they were in at 
+    // the checkpoint corresponding to the ROB index we're flushing to. We can also 
+    // ignore any writebacks in the current cycle
+    // We also mark all younger checkpoints as invalid, since those correspond to instructions 
+    // that are younger than the flush target, and thus should also be squashed by the flush.
+    // This happens in the always_ff block below.
     if (flush_info.valid) begin
       RAT_next       = checkpoints[flush_info.rob_idx].RAT;
       free_list_next = checkpoints[flush_info.rob_idx].free_list;
@@ -101,6 +107,9 @@ module RegisterRenamer (
     // ------------------------------------------------------------
     // Commit path
     // ------------------------------------------------------------
+    // On commit, we can update the ARAT to reflect the committed architectural 
+    // state of the register file. We can also free the old physical register 
+    // that was mapped to the committed destination register.
     for (int i = 0; i < COMMIT_WIDTH; i++) begin
       ROB_entry_t entry;
       entry = commit_bus.committed_rob_entries[i];
@@ -117,6 +126,8 @@ module RegisterRenamer (
     // ------------------------------------------------------------
     // Writeback path
     // ------------------------------------------------------------
+    // On a writeback, the physical register being written back is now ready to be read/used by 
+    // future instructions, so we can clear the corresponding bit in the busy list.
     if (!flush_info.valid) begin
       if (wb_bus.alu_writeback.valid && wb_bus.alu_writeback.pdst != P0) begin
         busy_list_next[wb_bus.alu_writeback.pdst] = 1'b0;
@@ -130,6 +141,9 @@ module RegisterRenamer (
     // ------------------------------------------------------------
     // Rename path
     // ------------------------------------------------------------
+    // On rename, we first set the physical source registers based on the RAT mappings.
+    // Then we check to see if it has a destination register that needs to be renamed. 
+    // If so, we allocate a new physical register from the free list,
     if (rename_accept) begin
       rat_out_next.advance_pipeline = 1'b1;
 
@@ -162,9 +176,7 @@ module RegisterRenamer (
 
     Ps1 = uop.has_rs1 ? RAT[rs1] : P0;
     Ps2 = uop.has_rs2 ? RAT[rs2] : P0;
-  end
 
-  always_comb begin
     Ps1_ready = !uop.has_rs1 || !busy_list[Ps1];
     Ps2_ready = !uop.has_rs2 || !busy_list[Ps2];
 
@@ -181,9 +193,7 @@ module RegisterRenamer (
 
       if (uop.has_rs2 && Ps2 == wb_bus.mem_writeback.pdst) Ps2_ready = 1'b1;
     end
-  end
 
-  always_comb begin
     Pd_old = P0;
     Pd_new = P0;
 
@@ -193,6 +203,9 @@ module RegisterRenamer (
     end
   end
 
+  // ------------------------------------------------------------
+  // Latch Next State
+  // ------------------------------------------------------------
   always_ff @(posedge clk) begin
     if (reset) begin
       rat_out   <= '0;
@@ -221,9 +234,24 @@ module RegisterRenamer (
       for (int i = 0; i < ROB_WIDTH; i++) begin
         checkpoints[i].valid <= 1'b0;
       end
+    end else if (flush_info.valid) begin
+      // Invalidate the checkpoint we used and all younger checkpoints.
+      // Keep older checkpoints, because older unresolved branches may still need recovery.
+      for (int k = 0; k < ROB_WIDTH; k++) begin
+        if (checkpoints[k].valid) begin
+          if (k[ROB_IDX_WIDTH-1:0] == flush_info.rob_idx || is_younger(
+                  k[ROB_IDX_WIDTH-1:0], flush_info.rob_idx, rob_bus.head_ptr
+              )) begin
+            checkpoints[k].valid <= 1'b0;
+          end
+        end
+      end
     end else begin
 
-      // Existing valid checkpoints must observe commit frees.
+      // On commit we must update all existing valid checkpoints to free any 
+      // physical registers that are being freed by the commit. This is necessary 
+      // to ensure that if we later flush to one of those checkpoints, we don't end up 
+      // with a free list that incorrectly marks a free physical register as still in use.
       for (int c = 0; c < COMMIT_WIDTH; c++) begin
         ROB_entry_t entry;
         entry = commit_bus.committed_rob_entries[c];
@@ -237,14 +265,30 @@ module RegisterRenamer (
         end
       end
 
+      // Invalidate checkpoint for committed branch/jump.
+      for (int c = 0; c < COMMIT_WIDTH; c++) begin
+        ROB_entry_t entry;
+        entry = commit_bus.committed_rob_entries[c];
+
+        if (entry.valid && entry.is_branch) begin
+          checkpoints[entry.rob_idx].valid <= 1'b0;
+        end
+      end
+
+      // If its a branch or jump instruction, then we store a checkpoint so we can return 
+      // to this state if the branch is mispredicted. 
       if (rename_accept && (uop.is_branch || uop.is_jump)) begin
         checkpoints[next_rob_idx].valid <= 1'b1;
         checkpoints[next_rob_idx].RAT <= RAT_next;
         checkpoints[next_rob_idx].free_list <= free_list_next;
-        checkpoints[next_rob_idx].busy_list <= busy_list_next;
       end
     end
   end
+
+  // ------------------------------------------------------------
+  // Verification Assertions
+  // ------------------------------------------------------------
+  // This module has been very problematic--so these AI generated assertions help catch bugs early.
 
   // Assertions to check invariants on RAT and free list
   always_ff @(posedge clk) begin
@@ -298,9 +342,9 @@ module RegisterRenamer (
         `RV_ASSERT(
             !checkpoints[flush_info.rob_idx].free_list[checkpoints[flush_info.rob_idx].RAT[r]],
             ("Checkpoint would free live RAT mapping: rob=%0d x%0d -> P%0d",
-         flush_info.rob_idx,
-         r,
-         checkpoints[flush_info.rob_idx].RAT[r]))
+        flush_info.rob_idx,
+        r,
+        checkpoints[flush_info.rob_idx].RAT[r]))
       end
     end
   end
@@ -314,8 +358,8 @@ module RegisterRenamer (
         for (int r = 0; r < 32; r++) begin
           `RV_ASSERT(RAT[r] != entry.old_dest,
                      ("Commit wants to free P%0d from rd=x%0d, but RAT[x%0d] still maps to it",
-           entry.old_dest, entry.rd, r)
-        )
+        entry.old_dest, entry.rd, r)
+    )
         end
       end
     end

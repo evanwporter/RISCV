@@ -39,6 +39,7 @@ module Dispatcher (
       rob_bus.push_entry.is_branch = rat_out.uop.is_branch || rat_out.uop.is_jump;
       rob_bus.push_entry.rd = rat_out.uop.rd;
       rob_bus.push_entry.has_rd = rat_out.uop.has_rd;
+      rob_bus.push_entry.rob_idx = rob_bus.tail_ptr;
     end
   end
 

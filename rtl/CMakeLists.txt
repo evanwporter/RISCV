@@ -16,7 +16,6 @@ rv_add_rtl(
         ${CMAKE_CURRENT_SOURCE_DIR}/bus.sv
     SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/RISCV.sv
-        # ${CMAKE_CURRENT_SOURCE_DIR}/Renamer.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/IssueQueue.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/ReorderBuffer.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/Dispatcher.sv

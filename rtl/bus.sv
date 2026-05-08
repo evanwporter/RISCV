@@ -1,3 +1,4 @@
+import riscv_lsu_types_pkg::*;
 import riscv_regs_types_pkg::*;
 import riscv_rob_types_pkg::*;
 import riscv_iq_types_pkg::*;
@@ -60,7 +61,11 @@ interface ReorderBuffer_if;
 
   executed_op_t STR_executed_op;
 
-  // Writeback validation query from execution/writeback path
+  /// Writeback validation query from execution/writeback path
+  /// During a flush, the entry being executed may be invalidated from the ROB. 
+  /// So we need to check during writeback whether the ROB entry being written back is 
+  /// still valid (i.e. not flushed).
+
   logic alu_wb_check_valid;
   logic [ROB_IDX_WIDTH-1:0] alu_wb_check_rob_idx;
   addr_t alu_wb_check_PC;
@@ -88,13 +93,14 @@ interface ReorderBuffer_if;
       input alu_wb_check_PC,
       output alu_wb_check_ok,
 
+      /// TODO: Use these
       input mem_wb_check_valid,
       input mem_wb_check_rob_idx,
       input mem_wb_check_PC,
       output mem_wb_check_ok
   );
 
-  modport Renamer_Side(input tail_ptr, input next_tail_ptr);
+  modport Renamer_Side(input tail_ptr, input next_tail_ptr, input head_ptr);
 
   modport Execution_Side(
       output ALU_executed_op, STR_executed_op,
@@ -170,7 +176,7 @@ interface AGU_if;
   logic [31:0] offset;
 
   /// 0=byte, 1=half, 2=word
-  logic [1:0] size;
+  size_t size;
 
   logic [31:0] addr;
   logic misalign;
