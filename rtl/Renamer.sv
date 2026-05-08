@@ -74,14 +74,9 @@ module RegisterRenamer (
         commit_bus.committed_rob_entries[i].old_dest != P0) begin
 
         if (commit_bus.committed_rob_entries[i].has_rd && commit_bus.committed_rob_entries[i].new_dest != P0) begin
-          assert (ARAT[commit_bus.committed_rob_entries[i].rd] == commit_bus.committed_rob_entries[i].old_dest)
-          else
-            $error(
-                "Commit mismatch: ARAT[%0d]=P%0d but ROB old_dest=P%0d",
-                commit_bus.committed_rob_entries[i].rd,
-                ARAT[commit_bus.committed_rob_entries[i].rd],
-                commit_bus.committed_rob_entries[i].old_dest
-            );
+          `RV_ASSERT(
+              ARAT[commit_bus.committed_rob_entries[i].rd] == commit_bus.committed_rob_entries[i].old_dest,
+              ("Commit mismatch: ARAT[%0d]=P%0d but ROB old_dest=P%0d", commit_bus.committed_rob_entries[i].rd, ARAT[commit_bus.committed_rob_entries[i].rd], commit_bus.committed_rob_entries[i].old_dest))
         end
 
         freed_list[commit_bus.committed_rob_entries[i].old_dest] = 1'b1;
@@ -183,8 +178,7 @@ module RegisterRenamer (
 
   always_ff @(posedge clk) begin
 
-    assert (free_list_next[0] == 1'b0)
-    else $error("Error: physical register P0 should never be allocated");
+    `RV_ASSERT(free_list_next[0] == 1'b0, ("physical register P0 should never be allocated"))
 
     if (reset) begin
 
@@ -199,8 +193,7 @@ module RegisterRenamer (
       busy_list_next = busy_list;
 
       for (int i = 0; i < 32; i++) begin
-        assert (!free_list[RAT[i]])
-        else $error("RAT[%0d] maps to free physical register P%0d", i, RAT[i]);
+        `RV_ASSERT(!free_list[RAT[i]], ("RAT[%0d] maps to free physical register P%0d", i, RAT[i]));
       end
 
       // Writeback results (mark destination registers as ready)
@@ -260,12 +253,9 @@ module RegisterRenamer (
               end
             end
 
-            assert (next_free.idx != RAT[uop.rd])
-            else
-              $error(
-                  "Error: next free register is the same as the current mapping for destination register %0d",
-                  uop.rd
-              );
+            `RV_ASSERT(
+                next_free.idx != RAT[uop.rd],
+                ("Error: next free register is the same as the current mapping for destination register %0d", uop.rd))
 
             RAT[uop.rd] <= next_free.idx;
 
@@ -306,9 +296,8 @@ module RegisterRenamer (
   always_comb begin
     for (int r = 0; r < 32; r++) begin
       for (int s = r + 1; s < 32; s++) begin
-        if (RAT[r] != P0 && RAT[r] == RAT[s]) begin
-          $error("RAT alias: x%0d and x%0d both map to P%0d", r, s, RAT[r]);
-        end
+        `RV_ASSERT(!(RAT[r] != P0 && RAT[r] == RAT[s]),
+                   ("RAT alias: x%0d and x%0d both map to P%0d", r, s, RAT[r]))
       end
     end
   end
@@ -357,4 +346,81 @@ module RegisterRenamer (
 
   assign rename_stall = decoder_out.valid && uop.has_rd && uop.rd != x0 && !next_free.valid;
 
+  // Assertions to check invariants on RAT and free list
+  always_ff @(posedge clk) begin
+    if (!reset) begin
+      `RV_ASSERT(!free_list[P0], ("P0 appeared on free list"))
+
+      `RV_ASSERT(!free_list_next[P0], ("P0 appeared on free_list_next"))
+
+      for (int r = 0; r < 32; r++) begin
+        `RV_ASSERT(!free_list[RAT[r]],
+                   ("Current RAT maps x%0d to free physical register P%0d", r, RAT[r]))
+      end
+    end
+  end
+
+  // Decode holds during rename stall
+  always_ff @(posedge clk) begin
+    if (!reset && !flush_info.valid) begin
+      if ($past(decoder_out.valid && rename_stall && !flush_info.valid)) begin
+        `RV_ASSERT(decoder_out.valid,
+                   ("Decoder dropped valid instruction during rename stall. old_pc=%0d", $past(
+                   decoder_out.uop.pc)));
+
+        `RV_ASSERT(decoder_out.uop.pc == $past(decoder_out.uop.pc),
+                   ("Decoder PC changed during rename stall: old_pc=%0d new_pc=%0d", $past(
+                   decoder_out.uop.pc), decoder_out.uop.pc));
+      end
+    end
+  end
+
+  // No two architectural registers alias the same physical register except x0/P0
+  always_comb begin
+    for (int r = 0; r < 32; r++) begin
+      for (int s = r + 1; s < 32; s++) begin
+        `RV_ASSERT(!(RAT[r] != P0 && RAT[r] == RAT[s]),
+                   ("RAT alias: x%0d and x%0d both map to P%0d", r, s, RAT[r]));
+      end
+    end
+  end
+
+  // Flush must restore a usable free list
+  always_ff @(posedge clk) begin
+    if (!reset && flush_info.valid) begin
+      `RV_ASSERT(checkpoints[flush_info.rob_idx].valid,
+                 ("Flush to invalid checkpoint: rob_idx=%0d", flush_info.rob_idx));
+
+      `RV_ASSERT(!checkpoints[flush_info.rob_idx].free_list[P0],
+                 ("Checkpoint free list has P0 free: rob_idx=%0d", flush_info.rob_idx));
+
+      for (int r = 0; r < 32; r++) begin
+        `RV_ASSERT(
+            !checkpoints[flush_info.rob_idx].free_list[checkpoints[flush_info.rob_idx].RAT[r]],
+            ("Checkpoint would free live RAT mapping: rob=%0d x%0d -> P%0d",
+              flush_info.rob_idx,
+              r,
+         checkpoints[flush_info.rob_idx].RAT[r]))
+      end
+    end
+  end
+
+  logic rename_accept;
+  assign rename_accept = decoder_out.valid && !rename_stall && !flush_info.valid;
+
+  // Branch checkpoint index must match the ROB entry
+  always_ff @(posedge clk) begin
+    if (!reset && rename_accept && uop.is_branch) begin
+      assert (next_rob_idx == rob_bus.tail_ptr)
+      else
+        $fatal(
+            "Branch checkpoint index mismatch: PC=%0d ckpt=%0d tail=%0d next_tail=%0d rat_advance_prev=%0b",
+            uop.pc,
+            next_rob_idx,
+            rob_bus.tail_ptr,
+            rob_bus.next_tail_ptr,
+            rat_out.advance_pipeline
+        );
+    end
+  end
 endmodule : RegisterRenamer

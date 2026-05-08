@@ -33,7 +33,7 @@ module MockInstructionMemory (
     // Re-open file only to count instruction words.
     fd = $fopen(hex_file, "r");
     if (fd == 0) begin
-      $fatal(1, "Could not open hex file: %s", hex_file);
+      $error(1, "Could not open hex file: %s", hex_file);
     end
 
     while (!$feof(

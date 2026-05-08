@@ -1,6 +1,12 @@
 import riscv_constants_pkg::*;
 
 package riscv_util_pkg;
+  import "DPI-C" function void rv_assert_fail(
+    input string file,
+    input int line,
+    input string msg
+  );
+
   function automatic logic is_younger(input logic [ROB_IDX_WIDTH-1:0] entry_idx,
                                       input logic [ROB_IDX_WIDTH-1:0] ref_idx,
                                       input logic [ROB_IDX_WIDTH-1:0] head);

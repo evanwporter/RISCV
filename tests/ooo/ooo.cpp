@@ -40,6 +40,26 @@ static fs::path make_failure_log_path(const fs::path& hex_file) {
     return dir / (name + ".log");
 }
 
+static bool g_sv_assert_failed = false;
+static std::string g_sv_assert_message;
+
+extern "C" void rv_assert_fail(const char* file, int line, const char* msg) {
+    if (!g_sv_assert_failed) {
+        g_sv_assert_failed = true;
+
+        std::ostringstream oss;
+        oss << "SV assertion failed at "
+            << (file ? file : "<unknown>")
+            << ":" << line
+            << ": "
+            << (msg ? msg : "<no message>");
+
+        g_sv_assert_message = oss.str();
+    }
+
+    VL_PRINTF("[error] %s\n", g_sv_assert_message.c_str());
+}
+
 static void write_failure_log(
     const fs::path& log_path,
     const fs::path& hex_file,
@@ -74,6 +94,9 @@ public:
 
     void create(int argc, char** argv, bool trace = true) {
         destroy();
+
+        g_sv_assert_failed = false;
+        g_sv_assert_message.clear();
 
         Verilated::threadContextp(nullptr);
         Verilated::gotFinish(false);
@@ -233,6 +256,20 @@ TEST_P(RV32UITest, Passes) {
 
     for (int i = 0; i < timeout_cycles; ++i) {
         sim.tick();
+
+        if (g_sv_assert_failed) {
+            failed = true;
+
+            std::ostringstream oss;
+            oss << hex_file.filename().stem().string()
+                << " hit SV assertion at cycle " << sim.cycle()
+                << ", a0 = " << sim.a0()
+                << "\n"
+                << g_sv_assert_message;
+
+            failure_reason = oss.str();
+            break;
+        }
 
         struct {
             int PC[256];

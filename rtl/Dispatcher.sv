@@ -1,6 +1,8 @@
 import riscv_regs_types_pkg::*;
 import riscv_decoder_types_pkg::*;
 
+`include "riscv/util.svh"
+
 module Dispatcher (
     IssueQueue_if.Dispatcher_Side alu_iq_bus,
     IssueQueue_if.Dispatcher_Side mem_iq_bus,
@@ -11,13 +13,11 @@ module Dispatcher (
 
   always_comb begin
     if (rat_out.advance_pipeline) begin
-      assert (rat_out.rob_idx == rob_bus.tail_ptr)
-      else
-        $error(
-            "Error: ROB tail pointer and RAT output ROB index should match, but got tail pointer %0d and RAT output ROB index %0d",
-            rob_bus.tail_ptr,
-            rat_out.rob_idx
-        );
+      `RV_ASSERT(rat_out.rob_idx == rob_bus.tail_ptr,
+                 ("Error: ROB tail pointer and RAT output ROB index should match, but got tail pointer %0d and RAT output ROB index %0d",
+       rob_bus.tail_ptr,
+       rat_out.rob_idx)
+    );
     end
   end
 

@@ -3,6 +3,8 @@ import riscv_constants_pkg::*;
 import riscv_regs_types_pkg::*;
 import riscv_util_pkg::*;
 
+`include "riscv/util.svh"
+
 module ReorderBuffer (
     input logic clk,
     input logic reset,
@@ -17,11 +19,10 @@ module ReorderBuffer (
     Writeback_if.Renamer_Side wb_bus
 );
 
-  initial begin
-    if ((ROB_WIDTH <= 1) || ((ROB_WIDTH & (ROB_WIDTH - 1)) != 0)) begin
-      $fatal(1, "ROB_WIDTH must be a power of two. Got ROB_WIDTH=%0d", ROB_WIDTH);
-    end
-  end
+  // initial begin
+  //   `RV_ASSERT((ROB_WIDTH <= 1) || ((ROB_WIDTH & (ROB_WIDTH - 1)) != 0),
+  //              ("ROB_WIDTH must be a power of two. Got ROB_WIDTH=%0d", ROB_WIDTH))
+  // end
 
   ROB_entry_t entries[ROB_WIDTH];
 

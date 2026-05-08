@@ -4,6 +4,8 @@ import riscv_rob_types_pkg::*;
 import riscv_constants_pkg::*;
 import riscv_decoder_types_pkg::*;
 
+`include "riscv/util.svh"
+
 module RISCV (
     input logic clk,
     input logic reset,
@@ -210,5 +212,34 @@ module RISCV (
       .ldq_bus(ldq_bus),
       .mem_bus(data_mem_bus)
   );
+
+  // Rename-stall should not last forever when ROB/IQ are empty
+  always_ff @(posedge clk) begin
+    logic [7:0] rename_stall_count;
+    if (reset || flush_info.valid || !rename_stall) begin
+      rename_stall_count <= '0;
+    end else begin
+      rename_stall_count <= rename_stall_count + 1'b1;
+      `RV_ASSERT(rename_stall_count < 8'd20,
+                 ("Rename stall stuck: PC=%0d dec_pc=%0d rd=x%0d has_rd=%0b next_free_valid=%0b rob_head=%0d rob_tail=%0d",
+                  PC,
+                  decoder_out.uop.pc,
+                  decoder_out.uop.rd,
+                  decoder_out.uop.has_rd,
+                  renamer.next_free.valid,  // hierarchical reference for debug only
+                 rob_bus.head_ptr, rob_bus.tail_ptr));
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    if (!reset && rename_stall) begin
+      $display(
+          "STALL pc=%0d dec_pc=%0d rd=x%0d next_free=%0b ROB head=%0d tail=%0d head_pc=%0d head_busy=%0b head_valid=%0b head_rd=x%0d old=P%0d new=P%0d",
+          PC, decoder_out.uop.pc, decoder_out.uop.rd, renamer.next_free.valid, rob_bus.head_ptr,
+          rob_bus.tail_ptr, rob_bus.head_entry.PC, rob_bus.head_entry.busy,
+          rob_bus.head_entry.valid, rob_bus.head_entry.rd, rob_bus.head_entry.old_dest,
+          rob_bus.head_entry.new_dest);
+    end
+  end
 
 endmodule : RISCV

@@ -1,6 +1,8 @@
 import riscv_types_pkg::*;
 import riscv_regs_types_pkg::*;
 
+`include "riscv/util.svh"
+
 module RegisterFile (
     input logic clk,
     input logic reset,
@@ -49,8 +51,7 @@ module RegisterFile (
         regs[i] <= '0;
       end
     end else begin
-      assert (regs[0] == 0)
-      else $error("Error: Register x0 should always be zero");
+      `RV_ASSERT(regs[0] == 0, ("Error: Register x0 should always be zero"));
 
       wb_bus.alu_writeback.valid <= 0;
       wb_bus.alu_writeback.pdst  <= P0;
