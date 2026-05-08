@@ -237,7 +237,7 @@ module RegisterRenamer (
         end
       end
 
-      if (rename_accept && uop.is_branch) begin
+      if (rename_accept && (uop.is_branch || uop.is_jump)) begin
         checkpoints[next_rob_idx].valid <= 1'b1;
         checkpoints[next_rob_idx].RAT <= RAT_next;
         checkpoints[next_rob_idx].free_list <= free_list_next;

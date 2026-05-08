@@ -6,3 +6,5 @@ build/
 *.surf.ron
 *.hex
 planning/Untitled Diagram.svg
+.gitignore
+*.ninja

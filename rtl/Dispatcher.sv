@@ -36,7 +36,7 @@ module Dispatcher (
       rob_bus.push_entry.stq_idx_valid = rat_out.uop.is_store;
       rob_bus.push_entry.stq_idx = rat_out.stq_idx;
       rob_bus.push_entry.PC = rat_out.uop.pc;
-      rob_bus.push_entry.is_branch = rat_out.uop.is_branch;
+      rob_bus.push_entry.is_branch = rat_out.uop.is_branch || rat_out.uop.is_jump;
       rob_bus.push_entry.rd = rat_out.uop.rd;
       rob_bus.push_entry.has_rd = rat_out.uop.has_rd;
     end
@@ -47,7 +47,7 @@ module Dispatcher (
     alu_iq_bus.push = 0;
     alu_iq_bus.push_entry = '0;
 
-    if (rat_out.advance_pipeline && (rat_out.uop.is_alu || rat_out.uop.is_branch)) begin
+    if (rat_out.advance_pipeline && (rat_out.uop.is_alu || rat_out.uop.is_branch || rat_out.uop.is_jump)) begin
       alu_iq_bus.push = 1;
 
       alu_iq_bus.push_entry.valid = 1;

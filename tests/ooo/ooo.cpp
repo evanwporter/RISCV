@@ -405,11 +405,7 @@ static const std::vector<fs::path> custom_hex_files = collect_files_in_directory
 static const std::vector<fs::path> riscv_hex_files = collect_files_in_directory(
     test_dir / "asm" / "riscv",
     ".hex",
-    {
-        "rv32ui-auipc.hex",
-        "rv32ui-jal.hex",
-        "rv32ui-jalr.hex",
-    },
+    {},
     "rv32ui-");
 
 INSTANTIATE_TEST_SUITE_P(

@@ -79,12 +79,26 @@ module ExecutionUnit (
     end
   end
 
-  wire  alu_exec = alu_iq_bus.issue_valid && alu_uop.is_alu;
-  wire  branch_exec = alu_iq_bus.issue_valid && alu_uop.is_branch;
+  wire         alu_exec = alu_iq_bus.issue_valid && alu_uop.is_alu;
+  wire         branch_exec = alu_iq_bus.issue_valid && alu_uop.is_branch;
+  wire         jump_exec = alu_iq_bus.issue_valid && alu_uop.is_jump;
 
-  logic branch_taken;
+  logic        branch_taken;
 
-  wire  mispredict = branch_exec && branch_taken;
+  wire         mispredict = branch_exec && branch_taken;
+
+  logic [31:0] jump_target;
+  logic        jump_is_jalr;
+
+  always_comb begin
+    jump_is_jalr = jump_exec && (alu_uop.inst.opcode == OP_I_JALR_TYPE);
+
+    if (jump_is_jalr) begin
+      jump_target = (alu_bus.op_a + alu_uop.imm) & 32'hffff_fffe;
+    end else begin
+      jump_target = alu_uop.pc + alu_uop.imm;
+    end
+  end
 
   always_comb begin
     case (alu_uop.branch_op)
@@ -127,10 +141,10 @@ module ExecutionUnit (
 
     // Only real ALU ops write a physical destination.
     // Branches do not write back to the register file.
-    if (alu_exec && alu_live && alu_iq_bus.issue_entry.pdst != P0) begin
+    if ((alu_exec || jump_exec) && alu_live && alu_iq_bus.issue_entry.pdst != P0) begin
       alu_write_bus.en      = 1'b1;
       alu_write_bus.addr    = alu_iq_bus.issue_entry.pdst;
-      alu_write_bus.data    = alu_bus.out;
+      alu_write_bus.data    = jump_exec ? (alu_uop.pc + 32'd4) : alu_bus.out;
       alu_write_bus.rob_idx = alu_iq_bus.issue_entry.rob_idx;
       alu_write_bus.PC      = alu_uop.pc;
     end
@@ -164,6 +178,19 @@ module ExecutionUnit (
         branch_info.rob_idx <= alu_iq_bus.issue_entry.rob_idx;
 
         branch_info.taken <= branch_taken;
+      end
+
+      if (jump_exec && alu_live) begin
+        branch_info.valid      <= 1'b1;
+        branch_info.target     <= jump_target;
+        branch_info.rob_idx    <= alu_iq_bus.issue_entry.rob_idx;
+        branch_info.taken      <= 1'b1;
+
+        // Static predictor is fall-through.
+        branch_info.mispredict <= (jump_target != (alu_uop.pc + 32'd4));
+
+        $display("JUMP executed at PC=%0d: target=%0d link=%0d is_jalr=%0b", alu_uop.pc,
+                 jump_target, alu_uop.pc + 32'd4, jump_is_jalr);
       end
     end
   end
@@ -229,7 +256,9 @@ module ExecutionUnit (
       rob_bus.STR_executed_op <= '0;
 
       // ALU completion
-      if (alu_iq_bus.issue_valid && alu_live) begin
+      if (alu_iq_bus.issue_valid &&
+          alu_live &&
+          (alu_uop.is_alu || alu_uop.is_branch || alu_uop.is_jump)) begin
         rob_bus.ALU_executed_op.executed_op_valid   <= 1'b1;
         rob_bus.ALU_executed_op.executed_op_rob_idx <= alu_iq_bus.issue_entry.rob_idx;
       end
