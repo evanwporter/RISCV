@@ -95,25 +95,41 @@ module ExecutionUnit (
     endcase
   end
 
-  always_ff @(posedge clk) begin
-    if (reset) begin
-    end else begin
-      alu_write_bus.en <= 1'b0;
-      alu_write_bus.rob_idx <= '0;
-      alu_write_bus.addr <= P0;
-      alu_write_bus.data <= 32'b0;
+  logic alu_live;
 
-      if (!flush_info.valid && alu_exec) begin
-        alu_write_bus.en <= 1'b1;  // don't writeback if destination is P0 (zero reg)
+  always_comb begin
+    // ------------------------------------------------------------
+    // Defaults
+    // ------------------------------------------------------------
+    rob_bus.alu_wb_check_valid   = 1'b0;
+    rob_bus.alu_wb_check_rob_idx = '0;
+    rob_bus.alu_wb_check_PC      = '0;
 
-        // assert (alu_iq_bus.issue_entry.pdst != P0)
-        // else $error("Error: ALU is trying to write to P0, which should never happen");
+    alu_write_bus.en             = 1'b0;
+    alu_write_bus.addr           = P0;
+    alu_write_bus.data           = '0;
+    alu_write_bus.rob_idx        = '0;
+    alu_write_bus.PC             = '0;
 
-        alu_write_bus.rob_idx <= alu_iq_bus.issue_entry.rob_idx;
-        alu_write_bus.PC <= alu_uop.pc;
-        alu_write_bus.addr <= alu_iq_bus.issue_entry.pdst;
-        alu_write_bus.data <= alu_bus.out;
-      end
+    alu_live                     = 1'b0;
+
+    // Check whether the issued ALU/IQ entry is still alive in the ROB.
+    if (alu_iq_bus.issue_valid) begin
+      rob_bus.alu_wb_check_valid   = 1'b1;
+      rob_bus.alu_wb_check_rob_idx = alu_iq_bus.issue_entry.rob_idx;
+      rob_bus.alu_wb_check_PC      = alu_uop.pc;
+
+      alu_live                     = rob_bus.alu_wb_check_ok && !flush_info.valid;
+    end
+
+    // Only real ALU ops write a physical destination.
+    // Branches do not write back to the register file.
+    if (alu_exec && alu_live && alu_iq_bus.issue_entry.pdst != P0) begin
+      alu_write_bus.en      = 1'b1;
+      alu_write_bus.addr    = alu_iq_bus.issue_entry.pdst;
+      alu_write_bus.data    = alu_bus.out;
+      alu_write_bus.rob_idx = alu_iq_bus.issue_entry.rob_idx;
+      alu_write_bus.PC      = alu_uop.pc;
     end
   end
 
@@ -135,7 +151,7 @@ module ExecutionUnit (
                  alu_bus.op_b, branch_taken, alu_uop.pc + alu_uop.imm);
       end
 
-      if (!flush_info.valid && branch_exec) begin
+      if (branch_exec && alu_live) begin
         branch_info.valid  <= 1'b1;
         branch_info.target <= alu_uop.pc + alu_uop.imm;
 
@@ -210,7 +226,7 @@ module ExecutionUnit (
       rob_bus.STR_executed_op <= '0;
 
       // ALU completion
-      if (alu_iq_bus.issue_valid) begin
+      if (alu_iq_bus.issue_valid && alu_live) begin
         rob_bus.ALU_executed_op.executed_op_valid   <= 1'b1;
         rob_bus.ALU_executed_op.executed_op_rob_idx <= alu_iq_bus.issue_entry.rob_idx;
       end

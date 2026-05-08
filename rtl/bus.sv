@@ -60,6 +60,17 @@ interface ReorderBuffer_if;
 
   executed_op_t STR_executed_op;
 
+  // Writeback validation query from execution/writeback path
+  logic alu_wb_check_valid;
+  logic [ROB_IDX_WIDTH-1:0] alu_wb_check_rob_idx;
+  addr_t alu_wb_check_PC;
+  logic alu_wb_check_ok;
+
+  logic mem_wb_check_valid;
+  logic [ROB_IDX_WIDTH-1:0] mem_wb_check_rob_idx;
+  addr_t mem_wb_check_PC;
+  logic mem_wb_check_ok;
+
   modport Dispatcher_Side(input full, tail_ptr, output push, output push_entry);
 
   modport ROB_Side(
@@ -70,12 +81,34 @@ interface ReorderBuffer_if;
       output head_entry,
       output head_ptr,
       output tail_ptr,
-      output next_tail_ptr
+      output next_tail_ptr,
+
+      input alu_wb_check_valid,
+      input alu_wb_check_rob_idx,
+      input alu_wb_check_PC,
+      output alu_wb_check_ok,
+
+      input mem_wb_check_valid,
+      input mem_wb_check_rob_idx,
+      input mem_wb_check_PC,
+      output mem_wb_check_ok
   );
 
   modport Renamer_Side(input tail_ptr, input next_tail_ptr);
 
-  modport Execution_Side(output ALU_executed_op, STR_executed_op);
+  modport Execution_Side(
+      output ALU_executed_op, STR_executed_op,
+
+      output alu_wb_check_valid,
+      output alu_wb_check_rob_idx,
+      output alu_wb_check_PC,
+      input alu_wb_check_ok,
+
+      output mem_wb_check_valid,
+      output mem_wb_check_rob_idx,
+      output mem_wb_check_PC,
+      input mem_wb_check_ok
+  );
 
   modport Commit_Side(input head_entry, input head_ptr, input tail_ptr);
 

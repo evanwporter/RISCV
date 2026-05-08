@@ -16,7 +16,7 @@ rv_add_rtl(
         ${CMAKE_CURRENT_SOURCE_DIR}/bus.sv
     SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/RISCV.sv
-        ${CMAKE_CURRENT_SOURCE_DIR}/Renamer.sv
+        # ${CMAKE_CURRENT_SOURCE_DIR}/Renamer.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/IssueQueue.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/ReorderBuffer.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/Dispatcher.sv
@@ -28,6 +28,7 @@ rv_add_rtl(
 )
 
 add_subdirectory(lsu)
+add_subdirectory(rename)
 
 get_target_property(RV_PACKAGES rv_rtl INTERFACE_RV_PACKAGES)
 get_target_property(RV_INTERFACES rv_rtl INTERFACE_RV_INTERFACES)

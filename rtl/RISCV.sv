@@ -242,4 +242,15 @@ module RISCV (
     end
   end
 
+  always_ff @(posedge clk) begin
+    if (!reset && rename_stall) begin
+      $display(
+          "STALL head_pc=%0d head_rd=x%0d old=P%0d new=P%0d head_busy=%0b busy_old=%0b busy_new=%0b",
+          rob_bus.head_entry.PC, rob_bus.head_entry.rd, rob_bus.head_entry.old_dest,
+          rob_bus.head_entry.new_dest, rob_bus.head_entry.busy,
+          renamer.busy_list[rob_bus.head_entry.old_dest],
+          renamer.busy_list[rob_bus.head_entry.new_dest]);
+    end
+  end
+
 endmodule : RISCV

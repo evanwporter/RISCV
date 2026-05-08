@@ -1,5 +1,6 @@
 import riscv_types_pkg::*;
 import riscv_regs_types_pkg::*;
+import riscv_constants_pkg::*;
 
 `include "riscv/util.svh"
 
@@ -17,7 +18,7 @@ module RegisterFile (
     RF_Read_if.RF_side  mem_read_B_bus,
     RF_Write_if.RF_side mem_write_bus
 );
-  logic [31:0] regs[64];
+  logic [31:0] regs[NUM_PHYSICAL_REGS];
 
   // Asynchronous reads
   always_comb begin
@@ -47,14 +48,16 @@ module RegisterFile (
   // Synchronous write + reset
   always_ff @(posedge clk) begin
     if (reset) begin
-      for (int i = 0; i < 64; i++) begin
+      for (int i = 0; i < NUM_PHYSICAL_REGS; i++) begin
         regs[i] <= '0;
       end
     end else begin
-      `RV_ASSERT(regs[0] == 0, ("Error: Register x0 should always be zero"));
+      `RV_ASSERT(regs[0] == 0, ("Error: Register x0 should always be zero"))
+
+      regs[P0] <= '0;
 
       wb_bus.alu_writeback.valid <= 0;
-      wb_bus.alu_writeback.pdst  <= P0;
+      wb_bus.alu_writeback.pdst <= P0;
       if (alu_write_bus.en) begin
         wb_bus.alu_writeback.valid <= 1;
         wb_bus.alu_writeback.pdst <= alu_write_bus.addr;

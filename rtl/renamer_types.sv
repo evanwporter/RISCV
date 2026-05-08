@@ -7,7 +7,13 @@ package riscv_renamer_types_pkg;
   typedef struct packed {
     physical_reg_t [31:0] RAT;
     free_list_t free_list;
+    logic [NUM_PHYSICAL_REGS-1:0] busy_list;
     logic valid;
   } checkpoint_t;
+
+  typedef struct packed {
+    logic valid;
+    physical_reg_t idx;
+  } next_free_t;
 
 endpackage : riscv_renamer_types_pkg

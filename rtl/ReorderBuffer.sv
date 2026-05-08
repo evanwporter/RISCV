@@ -169,4 +169,21 @@ module ReorderBuffer (
     end
   end
 
+  always_comb begin
+    bus.alu_wb_check_ok = 1'b0;
+    bus.mem_wb_check_ok = 1'b0;
+
+    if (bus.alu_wb_check_valid) begin
+      bus.alu_wb_check_ok =
+      entries[bus.alu_wb_check_rob_idx].valid &&
+      entries[bus.alu_wb_check_rob_idx].PC == bus.alu_wb_check_PC;
+    end
+
+    if (bus.mem_wb_check_valid) begin
+      bus.mem_wb_check_ok =
+      entries[bus.mem_wb_check_rob_idx].valid &&
+      entries[bus.mem_wb_check_rob_idx].PC == bus.mem_wb_check_PC;
+    end
+  end
+
 endmodule : ReorderBuffer
