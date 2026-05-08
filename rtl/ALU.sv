@@ -12,8 +12,8 @@ module ALU (
       OP_AND:  bus.out = bus.op_a & bus.op_b;
       OP_OR:   bus.out = bus.op_a | bus.op_b;
       OP_XOR:  bus.out = bus.op_a ^ bus.op_b;
-      OP_SLL:  bus.out = bus.op_a << bus.op_b;
-      OP_SRL:  bus.out = bus.op_a >> bus.op_b;
+      OP_SLL:  bus.out = bus.op_a << bus.op_b[4:0];
+      OP_SRL:  bus.out = bus.op_a >> bus.op_b[4:0];
       OP_SRA:  bus.out = $signed(bus.op_a) >>> bus.op_b[4:0];
       OP_SLT:  bus.out = ($signed(bus.op_a) < $signed(bus.op_b)) ? 32'b1 : 32'b0;
       OP_SLTU: bus.out = (bus.op_a < bus.op_b) ? 32'b1 : 32'b0;

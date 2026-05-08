@@ -22,6 +22,8 @@ vluint64_t g_verilator_time = 0;
 
 namespace fs = std::filesystem;
 
+static constexpr int timeout_cycles = 1000;
+
 double sc_time_stamp() {
     return static_cast<double>(g_verilator_time);
 }
@@ -232,7 +234,6 @@ TEST_P(RV32UITest, Passes) {
     const fs::path hex_file = GetParam();
 
     std::string hex_arg = std::string("+hex=") + hex_file.generic_string();
-    constexpr int timeout_cycles = 500;
 
     std::vector<std::string> args_storage;
     args_storage.emplace_back("ooo_gtest");
@@ -406,16 +407,8 @@ static const std::vector<fs::path> riscv_hex_files = collect_files_in_directory(
     ".hex",
     {
         "rv32ui-auipc.hex",
-        "rv32ui-beq.hex",
-        "rv32ui-bge.hex",
-        "rv32ui-bgeu.hex",
-        "rv32ui-blt.hex",
-        "rv32ui-bltu.hex",
-        "rv32ui-bne.hex",
         "rv32ui-jal.hex",
         "rv32ui-jalr.hex",
-        "rv32ui-sll.hex",
-        "rv32ui-srl.hex",
     },
     "rv32ui-");
 

@@ -170,11 +170,7 @@ module Decoder (
         // For now we will just predict not taken for branches.
         uop_next.predicted_taken = 1'b0;
 
-        case (decoded_IR.extra.b_type.funct3)
-          3'b000:  uop_next.branch_op = BRANCH_EQ;  // beq
-          3'b001:  uop_next.branch_op = BRANCH_NEQ;  // bne
-          default: uop_next.branch_op = BRANCH_EQ;
-        endcase
+        uop_next.branch_op = branch_kind_t'(decoded_IR.extra.b_type.funct3);
       end
 
       // JAL

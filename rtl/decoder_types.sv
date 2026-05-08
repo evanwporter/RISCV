@@ -143,9 +143,13 @@ package riscv_decoder_types_pkg;
 
   } imm_kind_t;
 
-  typedef enum {
-    BRANCH_EQ,
-    BRANCH_NEQ
+  typedef enum logic [2:0] {
+    BRANCH_EQ  = 3'h0,
+    BRANCH_NEQ = 3'h1,
+    BRANCH_LT  = 3'h4,
+    BRANCH_GE  = 3'h5,
+    BRANCH_LTU = 3'h6,
+    BRANCH_GEU = 3'h7
   } branch_kind_t;
 
   typedef struct packed {

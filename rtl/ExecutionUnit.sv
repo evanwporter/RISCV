@@ -90,7 +90,10 @@ module ExecutionUnit (
     case (alu_uop.branch_op)
       BRANCH_EQ: branch_taken = (alu_bus.op_a == alu_bus.op_b);
       BRANCH_NEQ: branch_taken = (alu_bus.op_a != alu_bus.op_b);
-      // TODO: extend
+      BRANCH_LT: branch_taken = ($signed(alu_bus.op_a) < $signed(alu_bus.op_b));
+      BRANCH_GE: branch_taken = ($signed(alu_bus.op_a) >= $signed(alu_bus.op_b));
+      BRANCH_LTU: branch_taken = (alu_bus.op_a < alu_bus.op_b);
+      BRANCH_GEU: branch_taken = (alu_bus.op_a >= alu_bus.op_b);
       default: branch_taken = 1'b0;
     endcase
   end
