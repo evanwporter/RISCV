@@ -37,6 +37,10 @@ module ReorderBuffer (
 
   assign bus.full  = (next_tail == head);
 
+  function automatic logic survives_flush(input logic [ROB_IDX_WIDTH-1:0] entry_idx);
+    return !is_younger(entry_idx, flush_info.rob_idx, head);
+  endfunction
+
   // TODO: This logic doesn't account for circular wraparound
   always_comb begin
     oldest_branch_info = '0;
@@ -67,13 +71,25 @@ module ReorderBuffer (
       end
 
     end else if (flush_info.valid) begin
+      // Preserve completions for older/surviving instructions.
+      if (bus.ALU_executed_op.executed_op_valid && survives_flush(
+              bus.ALU_executed_op.executed_op_rob_idx
+          )) begin
+        entries[bus.ALU_executed_op.executed_op_rob_idx].busy <= 1'b0;
+      end
+
+      if (bus.STR_executed_op.executed_op_valid && survives_flush(
+              bus.STR_executed_op.executed_op_rob_idx
+          )) begin
+        entries[bus.STR_executed_op.executed_op_rob_idx].busy <= 1'b0;
+      end
+
       // Invalidate younger entries
       for (int i = 0; i < ROB_WIDTH; i++) begin
         if (entries[i].valid) begin
           if (is_younger(i[ROB_IDX_WIDTH-1:0], flush_info.rob_idx, head)) begin
-            $display("Flushing ROB entry %d, PC=%0d", i, entries[i].PC);
-            $fflush();
             entries[i].valid <= 1'b0;
+            entries[i] <= '0;  // not technically necessary, but makes debugging easier
           end
         end
       end
