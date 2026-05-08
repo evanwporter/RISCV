@@ -103,6 +103,7 @@ module RISCV (
       .clk(clk),
       .reset(reset),
       .advance_pipeline(advance_pipeline),
+      .flush(flush_info.valid),
       .decoder_in(decoder_in),
       .stq_bus(stq_bus),
       .ldq_bus(ldq_bus),

@@ -6,6 +6,7 @@ module Decoder (
     input logic clk,
     input logic reset,
     input logic advance_pipeline,
+    input logic flush,
 
     input decoder_input_t decoder_in,
 
@@ -22,12 +23,12 @@ module Decoder (
 
   // Pipeline register
   always_ff @(posedge clk) begin
-    if (reset) begin
+    if (reset || flush) begin
       decoder_out  <= '0;
       stq_bus.push <= 1'b0;
       ldq_bus.push <= 1'b0;
     end else begin
-      decoder_out.valid <= 1'b0;
+      // decoder_out.valid <= 1'b0;
       stq_bus.push <= 1'b0;
       ldq_bus.push <= 1'b0;
       if (advance_pipeline) begin
