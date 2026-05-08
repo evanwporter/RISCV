@@ -10,6 +10,7 @@ module RegisterRenamer (
     input logic reset,
     input decoder_output_t decoder_out,
     input flush_t flush_info,
+    output logic rename_stall,
     output rat_output_t rat_out,
     ReorderBuffer_if.Renamer_Side rob_bus,
     Writeback_if.Renamer_Side wb_bus,
@@ -102,23 +103,36 @@ module RegisterRenamer (
     else rs2 = uop.rs2;
   end
 
+  free_list_t freed_list;
+  assign freed_list = get_freed_list();
+
+  free_list_t alloc_free_list;
+
   /// Obtain the next free physical register from the free list. This is used for renaming
   /// destination registers of new instructions.
   next_free_t next_free;
-  assign next_free = get_next_free(free_list);
+  assign next_free = get_next_free(alloc_free_list);
 
   always_comb begin
-    free_list_next = free_list;
+    alloc_free_list = free_list;
 
     // Always free committed old physical registers.
     if (!flush_info.valid) begin
-      free_list_next |= get_freed_list();
+      alloc_free_list |= freed_list;
     end
 
+    if (flush_info.valid) begin
+      alloc_free_list = checkpoints[flush_info.rob_idx].free_list;
+    end
+  end
+
+  always_comb begin
+    free_list_next = alloc_free_list;
+
     // Allocate only when actually renaming a valid destination.
-    if (decoder_out.valid && !flush_info.valid) begin
+    if (!flush_info.valid && decoder_out.valid && !rename_stall) begin
       // Allocate new reg
-      if (uop.has_rd && uop.rd != x0 && next_free.valid) begin
+      if (uop.has_rd && uop.rd != x0) begin
         free_list_next[next_free.idx] = 1'b0;
       end
     end
@@ -201,7 +215,7 @@ module RegisterRenamer (
       if (flush_info.valid) begin
         RAT <= checkpoints[flush_info.rob_idx].RAT;
         busy_list <= '0; // on recovery, mark all busy bits as 0 since we don't know which instructions were in-flight
-      end else if (decoder_out.valid) begin
+      end else if (decoder_out.valid && !rename_stall) begin
         rat_out.advance_pipeline <= 1'b1;
 
         // Read sources
@@ -258,8 +272,7 @@ module RegisterRenamer (
             busy_list[next_free.idx] <= 1'b1;
           end else begin
             // no free physical register: stall rename/dispatch
-            rat_out <= '0;
-            // keep RAT unchanged
+            $fatal("Internal renamer error: no physical register available despite !stall");
           end
         end else begin
           // no destination instruction
@@ -274,6 +287,38 @@ module RegisterRenamer (
 
         rat_out.rob_idx <= next_rob_idx;
 
+        if (decoder_out.valid && uop.is_branch) begin
+          $display(
+              "CKPT create branch PC=%0d ckpt_idx=%0d RAT[x4]=P%0d RAT[x5]=P%0d tail=%0d next_tail=%0d",
+              uop.pc, next_rob_idx, RAT[x4], RAT[x5], rob_bus.tail_ptr, rob_bus.next_tail_ptr);
+        end
+
+        if (flush_info.valid) begin
+          $display("CKPT restore rob_idx=%0d RAT[x4]=P%0d RAT[x5]=P%0d", flush_info.rob_idx,
+                   checkpoints[flush_info.rob_idx].RAT[x4],
+                   checkpoints[flush_info.rob_idx].RAT[x5]);
+        end
+
+      end
+    end
+  end
+
+  always_comb begin
+    for (int r = 0; r < 32; r++) begin
+      for (int s = r + 1; s < 32; s++) begin
+        if (RAT[r] != P0 && RAT[r] == RAT[s]) begin
+          $error("RAT alias: x%0d and x%0d both map to P%0d", r, s, RAT[r]);
+        end
+      end
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    if (!reset) begin
+      if (decoder_out.valid && uop.has_rd && (uop.rd == x4 || uop.rd == x5)) begin
+        $display("RENAME PC=%0d rd=x%0d old=P%0d new=P%0d free[new]=%0b RAT[x4]=P%0d RAT[x5]=P%0d",
+                 uop.pc, uop.rd, RAT[uop.rd], next_free.idx, free_list[next_free.idx], RAT[x4],
+                 RAT[x5]);
       end
     end
   end
@@ -302,14 +347,14 @@ module RegisterRenamer (
   always_ff @(posedge clk) begin
     if (reset) begin
     end else begin
-      if (decoder_out.valid) begin
-        if (uop.is_branch) begin
-          checkpoints[next_rob_idx].free_list <= free_list;
-          checkpoints[next_rob_idx].valid <= 1'b1;
-          checkpoints[next_rob_idx].RAT <= RAT;
-        end
+      if (decoder_out.valid && !rename_stall && uop.is_branch) begin
+        checkpoints[next_rob_idx].free_list <= free_list_next;
+        checkpoints[next_rob_idx].valid <= 1'b1;
+        checkpoints[next_rob_idx].RAT <= RAT;
       end
     end
   end
+
+  assign rename_stall = decoder_out.valid && uop.has_rd && uop.rd != x0 && !next_free.valid;
 
 endmodule : RegisterRenamer

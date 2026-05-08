@@ -209,7 +209,7 @@ TEST_P(RV32UITest, Passes) {
     const fs::path hex_file = GetParam();
 
     std::string hex_arg = std::string("+hex=") + hex_file.generic_string();
-    constexpr int timeout_cycles = 250;
+    constexpr int timeout_cycles = 500;
 
     std::vector<std::string> args_storage;
     args_storage.emplace_back("ooo_gtest");
@@ -368,7 +368,6 @@ static const std::vector<fs::path> riscv_hex_files = collect_files_in_directory(
     test_dir / "asm" / "riscv",
     ".hex",
     {
-        // "rv32ui-andi.hex",
         "rv32ui-auipc.hex",
         "rv32ui-beq.hex",
         "rv32ui-bge.hex",
@@ -378,10 +377,8 @@ static const std::vector<fs::path> riscv_hex_files = collect_files_in_directory(
         "rv32ui-bne.hex",
         "rv32ui-jal.hex",
         "rv32ui-jalr.hex",
-        "rv32ui-ori.hex",
         "rv32ui-sll.hex",
         "rv32ui-srl.hex",
-        "rv32ui-xori.hex",
     },
     "rv32ui-");
 

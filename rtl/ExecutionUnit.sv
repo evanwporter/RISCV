@@ -84,7 +84,8 @@ module ExecutionUnit (
 
   logic branch_taken;
 
-  wire  mispredict = branch_exec && branch_taken && (alu_uop.pc != branch_info.target);
+  wire  mispredict = branch_exec && branch_taken;
+
   always_comb begin
     case (alu_uop.branch_op)
       BRANCH_EQ: branch_taken = (alu_bus.op_a == alu_bus.op_b);
@@ -122,6 +123,17 @@ module ExecutionUnit (
 
     end else begin
       branch_info <= '0;
+
+      if (alu_write_bus.en) begin
+        $display("ALU_WB PC=%0d pdst=P%0d data=%08h rob=%0d", alu_write_bus.PC, alu_write_bus.addr,
+                 alu_write_bus.data, alu_write_bus.rob_idx);
+      end
+
+      if (branch_exec) begin
+        $display("BRANCH PC=%0d prs1=%0d val1=%h prs2=%0d val2=%h taken=%0b target=%0d", alu_uop.pc,
+                 alu_iq_bus.issue_entry.prs1, alu_bus.op_a, alu_iq_bus.issue_entry.prs2,
+                 alu_bus.op_b, branch_taken, alu_uop.pc + alu_uop.imm);
+      end
 
       if (!flush_info.valid && branch_exec) begin
         branch_info.valid  <= 1'b1;

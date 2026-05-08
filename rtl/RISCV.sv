@@ -46,6 +46,8 @@ module RISCV (
 
   flush_t flush_info;
 
+  logic rename_stall;
+
   assign instruction_mem_bus.addr = PC;
   assign instruction_mem_bus.read_en = advance_pipeline;
 
@@ -74,19 +76,15 @@ module RISCV (
     end
   end
 
-  logic pipeline_stalled;
-
   always_ff @(posedge clk) begin
     if (reset) begin
       PC <= '0;
     end else begin
-      pipeline_stalled <= 1'b0;
       if (flush_info.valid) begin
         PC <= oldest_branch_info.target;  // redirect
         $display("Flushing pipeline due to branch mispredict! Redirecting to PC=%0d",
                  oldest_branch_info.target);
         $fflush();
-        pipeline_stalled <= 1'b1;
       end
 
       if (advance_pipeline) begin
@@ -95,7 +93,11 @@ module RISCV (
     end
   end
 
-  assign advance_pipeline = instr_valid && !(pipeline_stalled || flush_info.valid || just_released_reset);
+  assign advance_pipeline =
+    instr_valid &&
+    !flush_info.valid &&
+    !just_released_reset &&
+    !rename_stall;
 
   Decoder decoder (
       .clk(clk),
@@ -113,6 +115,7 @@ module RISCV (
       .commit_bus(commit_bus),
       .decoder_out(decoder_out),
       .flush_info(flush_info),
+      .rename_stall(rename_stall),
       .rob_bus(rob_bus),
       .rat_out(rat_out),
       .wb_bus(wb_bus)
@@ -206,6 +209,5 @@ module RISCV (
       .ldq_bus(ldq_bus),
       .mem_bus(data_mem_bus)
   );
-
 
 endmodule : RISCV
