@@ -42,20 +42,21 @@ module ReorderBuffer (
     return !is_younger(entry_idx, flush_info.rob_idx, head);
   endfunction
 
-  // TODO: This logic doesn't account for circular wraparound
+  // ------------------------------------------------------------
+  // Find Oldest Unresolved Branch
+  // ------------------------------------------------------------
   always_comb begin
     oldest_branch_info = '0;
 
-    // ------------------------------------------------------------
-    // Find Oldest Unresolved Branch
-    // ------------------------------------------------------------
-    for (int i = 0; i < ROB_WIDTH; i++) begin
-      if (entries[i].valid && entries[i].is_branch && 
-          !entries[i].branch_info.flushed && 
-          !entries[i].branch_info.resolved) begin
-        $display("Oldest branch in ROB is at index %d, target=%0d, mispredict=%b", i,
-                 entries[i].branch_info.target, entries[i].branch_info.mispredict);
-        oldest_branch_info = entries[i].branch_info;
+    for (int unsigned off = 0; off < ROB_WIDTH; off++) begin
+      logic [ROB_IDX_WIDTH-1:0] idx;
+      idx = head + ROB_IDX_WIDTH'(off);
+
+      if (entries[idx].valid &&
+        entries[idx].is_branch &&
+        !entries[idx].branch_info.flushed &&
+        !entries[idx].branch_info.resolved) begin
+        oldest_branch_info = entries[idx].branch_info;
         break;
       end
     end

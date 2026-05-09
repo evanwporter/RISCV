@@ -49,6 +49,17 @@ module RISCV (
   flush_t flush_info;
 
   logic rename_stall;
+  logic structural_stall;
+
+  assign structural_stall =
+    decoder_out.valid &&
+    (
+        rob_bus.full ||
+        alu_iq_bus.full ||
+        mem_iq_bus.full ||
+        stq_bus.full ||
+        ldq_bus.full
+    );
 
   assign instruction_mem_bus.addr = PC;
   assign instruction_mem_bus.read_en = advance_pipeline;
@@ -99,7 +110,8 @@ module RISCV (
     instr_valid &&
     !flush_info.valid &&
     !just_released_reset &&
-    !rename_stall;
+    !rename_stall &&
+    !structural_stall;
 
   Decoder decoder (
       .clk(clk),

@@ -15,9 +15,9 @@ module LDQ (
   ldq_entry_t entries[LDQ_WIDTH];
   logic [LDQ_IDX_WIDTH:0] count;
 
-  logic full, empty;
+  logic empty;
 
-  assign full  = (count == LDQ_WIDTH);
+  assign bus.full = (count == LDQ_WIDTH);
   assign empty = (count == 0);
 
   logic [STQ_WIDTH-1:0] stq_dep_mask;
@@ -38,7 +38,7 @@ module LDQ (
       end
     end else begin
       // Allocate
-      if (bus.push && !full) begin
+      if (bus.push && !bus.full) begin
         entries[bus.tail_idx] <= '0;
         entries[bus.tail_idx].valid <= 1'b1;
         entries[bus.tail_idx].st_dep_mask <= stq_dep_mask;

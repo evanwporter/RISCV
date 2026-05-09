@@ -99,6 +99,8 @@ interface LDQ_if;
   /// Decode allocation
   logic push;
 
+  logic full;
+
   /// Tail pointer for the next available slot in the LDQ
   /// Recorded by the decoder and used to track the LDQ entry in the memory IQ.
   logic [LDQ_IDX_WIDTH-1:0] tail_idx;
@@ -136,6 +138,7 @@ interface LDQ_if;
   modport LDQ_side(
       input push,
       input write_addr, write_addr_idx, write_addr_value,
+      output full,
       output mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC,
       output tail_idx
   );
