@@ -2,6 +2,7 @@ package riscv_constants_pkg;
 
   // localparam int NUM_LOGICAL_REGS = 32;
   localparam int NUM_PHYSICAL_REGS = 64;
+  localparam int PHYSICAL_REG_IDX = $clog2(NUM_PHYSICAL_REGS);
 
   /// TODO: the amount that can be popped from the iq should not depend on commit width
   /// ALso this breaks the ls when its 4 due to popping mispredicted branches off of ROB
