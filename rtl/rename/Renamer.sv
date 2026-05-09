@@ -366,14 +366,21 @@ module RegisterRenamer (
   end
 
   always_comb begin
+    physical_reg_t [31:0] arat_walk;
+    arat_walk = ARAT;
+
     for (int i = 0; i < COMMIT_WIDTH; i++) begin
       ROB_entry_t entry;
       entry = commit_bus.committed_rob_entries[i];
 
-      if (entry.valid && entry.has_rd && entry.rd != x0 && entry.old_dest != P0) begin
-        `RV_ASSERT(
-            ARAT[entry.rd] == entry.old_dest,
-            ("Commit mismatch: ARAT[x%0d]=P%0d but ROB old_dest=P%0d", entry.rd, ARAT[entry.rd], entry.old_dest))
+      if (entry.valid && entry.has_rd && entry.rd != x0) begin
+        if (entry.old_dest != P0) begin
+          `RV_ASSERT(
+              arat_walk[entry.rd] == entry.old_dest,
+              ("Commit mismatch: entry=%0d rd=x%0d expected old=P%0d actual old=P%0d new=P%0d", i, entry.rd, arat_walk[entry.rd], entry.old_dest, entry.new_dest))
+        end
+
+        arat_walk[entry.rd] = entry.new_dest;
       end
     end
   end

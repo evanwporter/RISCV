@@ -1,11 +1,11 @@
 package riscv_constants_pkg;
 
   // localparam int NUM_LOGICAL_REGS = 32;
-  localparam int NUM_PHYSICAL_REGS = 256;
+  localparam int NUM_PHYSICAL_REGS = 64;
 
   /// TODO: the amount that can be popped from the iq should not depend on commit width
   /// ALso this breaks the ls when its 4 due to popping mispredicted branches off of ROB
-  localparam int COMMIT_WIDTH = 1;
+  localparam int COMMIT_WIDTH = 4;
 
   localparam int STQ_WIDTH = 4;
   localparam int STQ_IDX_WIDTH = $clog2(STQ_WIDTH);
@@ -16,6 +16,6 @@ package riscv_constants_pkg;
   localparam int ROB_WIDTH = 256;
   localparam int ROB_IDX_WIDTH = $clog2(ROB_WIDTH);
 
-  localparam int IQ_WIDTH = 256;
+  localparam int IQ_WIDTH = 16;
   localparam int IQ_IDX_WIDTH = $clog2(IQ_WIDTH);
 endpackage : riscv_constants_pkg

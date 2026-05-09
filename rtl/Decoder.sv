@@ -52,7 +52,6 @@ module Decoder (
 
   // Decode logic
   always_comb begin
-    // Default everything
     uop_next = '0;
 
     // Identity

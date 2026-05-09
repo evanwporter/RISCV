@@ -79,16 +79,16 @@ module ExecutionUnit (
     end
   end
 
-  wire         alu_exec = alu_iq_bus.issue_valid && alu_uop.is_alu;
-  wire         branch_exec = alu_iq_bus.issue_valid && alu_uop.is_branch;
-  wire         jump_exec = alu_iq_bus.issue_valid && alu_uop.is_jump;
+  wire alu_exec = alu_iq_bus.issue_valid && alu_uop.is_alu;
+  wire branch_exec = alu_iq_bus.issue_valid && alu_uop.is_branch;
+  wire jump_exec = alu_iq_bus.issue_valid && alu_uop.is_jump;
 
-  logic        branch_taken;
+  logic branch_taken;
 
-  wire         mispredict = branch_exec && branch_taken;
+  wire mispredict = branch_exec && branch_taken;
 
   logic [31:0] jump_target;
-  logic        jump_is_jalr;
+  logic jump_is_jalr;
 
   always_comb begin
     jump_is_jalr = jump_exec && (alu_uop.inst.opcode == OP_I_JALR_TYPE);

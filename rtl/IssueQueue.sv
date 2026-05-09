@@ -24,6 +24,10 @@ module IssueQueue (
     end
   end
 
+  // ------------------------------------------------------------
+  // Wakeup (broadcast)
+  // ------------------------------------------------------------
+
   // Find first free slot (for push)
   logic [IQ_IDX_WIDTH-1:0] free_idx;
   logic found_free;
@@ -32,7 +36,7 @@ module IssueQueue (
     found_free = 1'b0;
     free_idx   = '0;
 
-    for (int i = 0; i < IQ_WIDTH; i++) begin
+    for (int unsigned i = 0; i < IQ_WIDTH; i++) begin
       if (!entries[i].valid && !found_free) begin
         free_idx   = IQ_IDX_WIDTH'(i);
         found_free = 1'b1;
@@ -82,7 +86,9 @@ module IssueQueue (
         end
       end
 
+      // ------------------------------------------------------------
       // Issue
+      // ------------------------------------------------------------
       bus.issue_valid <= found;
       if (found) begin
         $display("Issuing IQ entry %d (rob_idx=%d), PC=%d", selected, entries[selected].rob_idx,
@@ -91,7 +97,11 @@ module IssueQueue (
         entries[selected].valid <= 1'b0;
       end
 
+      // ------------------------------------------------------------
       // Wakeup (broadcast)
+      // ------------------------------------------------------------
+
+      // ALU Wakeup (broadcast)
       if (wb_bus.alu_writeback.valid) begin
         // Find all regs waiting on this dst reg and mark them ready
         for (int i = 0; i < IQ_WIDTH; i++) begin
@@ -102,7 +112,7 @@ module IssueQueue (
         end
       end
 
-      // Wakeup (broadcast)
+      // Memory Wakeup (broadcast)
       if (wb_bus.mem_writeback.valid) begin
         // Find all regs waiting on this dst reg and mark them ready
         for (int i = 0; i < IQ_WIDTH; i++) begin

@@ -46,9 +46,13 @@ module ReorderBuffer (
   always_comb begin
     oldest_branch_info = '0;
 
-    // Find oldest branch
+    // ------------------------------------------------------------
+    // Find Oldest Unresolved Branch
+    // ------------------------------------------------------------
     for (int i = 0; i < ROB_WIDTH; i++) begin
-      if (entries[i].valid && entries[i].is_branch && !entries[i].branch_info.flushed && !entries[i].branch_info.resolved) begin
+      if (entries[i].valid && entries[i].is_branch && 
+          !entries[i].branch_info.flushed && 
+          !entries[i].branch_info.resolved) begin
         $display("Oldest branch in ROB is at index %d, target=%0d, mispredict=%b", i,
                  entries[i].branch_info.target, entries[i].branch_info.mispredict);
         oldest_branch_info = entries[i].branch_info;
@@ -59,6 +63,7 @@ module ReorderBuffer (
 
   always_ff @(posedge clk) begin
     logic [ROB_IDX_WIDTH-1:0] idx;
+
     /// TODO replace i w/ commit_count
     logic [4:0] commit_count;
     commit_count = 0;
@@ -71,7 +76,12 @@ module ReorderBuffer (
         entries[i] <= '0;
       end
 
-    end else if (flush_info.valid) begin
+    end else
+
+    // ------------------------------------------------------------
+    // Flush
+    // ------------------------------------------------------------
+    if (flush_info.valid) begin
       // Preserve completions for older/surviving instructions.
       if (bus.ALU_executed_op.executed_op_valid && survives_flush(
               bus.ALU_executed_op.executed_op_rob_idx
@@ -122,12 +132,17 @@ module ReorderBuffer (
         entries[bus.STR_executed_op.executed_op_rob_idx].busy <= 1'b0;
       end
 
+      // ------------------------------------------------------------
+      // Commit
+      // ------------------------------------------------------------
+
       // Clear commit bus before we start filling it with committed entries
+      // This is necessary because in the below loop we may break early.
       for (int i = 0; i < COMMIT_WIDTH; i++) begin
         commit_bus.committed_rob_entries[i] <= '0;
       end
 
-      // Commit (keep popping entries starting from head until we get to a not busy entry)
+      // Keep popping entries starting from head until we get to a not busy entry
       for (int i = 0; i < COMMIT_WIDTH; i++) begin
         idx = head + i;
 
@@ -153,7 +168,9 @@ module ReorderBuffer (
 
       head <= head + commit_count;
 
+      // ------------------------------------------------------------
       // Dispatch (push to tail)
+      // ------------------------------------------------------------
       if (bus.push && !bus.full) begin
         entries[tail] <= bus.push_entry;
         entries[tail].valid <= 1'b1;

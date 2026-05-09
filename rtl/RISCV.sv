@@ -226,8 +226,8 @@ module RISCV (
                   decoder_out.uop.pc,
                   decoder_out.uop.rd,
                   decoder_out.uop.has_rd,
-                  renamer.next_free.valid,  // hierarchical reference for debug only
-                 rob_bus.head_ptr, rob_bus.tail_ptr));
+                  renamer.next_free.valid,
+                 rob_bus.head_ptr, rob_bus.tail_ptr))
     end
   end
 
