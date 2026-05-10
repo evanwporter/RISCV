@@ -124,6 +124,7 @@
   "clangd.arguments": [
     "--experimental-modules-support",
     "--compile-commands-dir=${workspaceFolder}/build/debug",
+    // "--compile-commands-dir=${workspaceFolder}/build/debug/tests/doom/build",
     // "--compile-commands-dir=${workspaceFolder}/build/release",
     "--clang-tidy",
     "--completion-style=detailed",
