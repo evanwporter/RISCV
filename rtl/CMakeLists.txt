@@ -28,6 +28,7 @@ rv_add_rtl(
 
 add_subdirectory(lsu)
 add_subdirectory(rename)
+add_subdirectory(syscall)
 
 get_target_property(RV_PACKAGES rv_rtl INTERFACE_RV_PACKAGES)
 get_target_property(RV_INTERFACES rv_rtl INTERFACE_RV_INTERFACES)

@@ -1,8 +1,7 @@
 import riscv_types_pkg::*;
 import riscv_regs_types_pkg::*;
-import riscv_rob_types_pkg::*;
-import riscv_constants_pkg::*;
 import riscv_decoder_types_pkg::*;
+import riscv_constants_pkg::*;
 
 `include "riscv/util.svh"
 
@@ -32,6 +31,13 @@ module RISCV (
   RF_Read_if execution_mem_read_B_bus ();
 
   RF_Write_if lsu_write_bus ();
+
+  Syscall_if su_bus ();
+
+  assign su_bus.a0 = rf.regs[renamer.RAT[10]];
+  assign su_bus.a1 = rf.regs[renamer.RAT[11]];
+  assign su_bus.a7 = rf.regs[renamer.RAT[17]];
+  assign su_bus.RAT_10 = renamer.RAT[10];
 
   addr_t PC;
 
@@ -169,7 +175,8 @@ module RISCV (
       .flush_info(flush_info),
       .branch_info(branch_info),
       .oldest_branch_info(oldest_branch_info),
-      .wb_bus(wb_bus)
+      .wb_bus(wb_bus),
+      .su_bus(su_bus)
   );
 
   ExecutionUnit eu (
@@ -198,7 +205,8 @@ module RISCV (
       .alu_write_bus(execution_alu_write_bus),
       .mem_read_A_bus(execution_mem_read_A_bus),
       .mem_read_B_bus(execution_mem_read_B_bus),
-      .mem_write_bus(lsu_write_bus)
+      .mem_write_bus(lsu_write_bus),
+      .su_bus(su_bus)
   );
 
   STQ stq (
@@ -223,6 +231,14 @@ module RISCV (
       .rf_write_bus(lsu_write_bus),
       .ldq_bus(ldq_bus),
       .mem_bus(data_mem_bus)
+  );
+
+  SyscallUnit su (
+      .clk(clk),
+      .reset(reset),
+      .bus(su_bus),
+      .commit_bus(commit_bus),
+      .halt(halt)
   );
 
   // Rename-stall should not last forever when ROB/IQ are empty

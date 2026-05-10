@@ -28,6 +28,8 @@ package riscv_rob_types_pkg;
 
     logic is_branch;
 
+    logic is_ecall;
+
     logical_reg_t rd;
 
     logic has_rd;

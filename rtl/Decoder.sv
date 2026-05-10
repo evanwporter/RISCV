@@ -37,7 +37,8 @@ module Decoder (
                              uop_next.is_load ||
                              uop_next.is_store ||
                              uop_next.is_branch ||
-                             uop_next.is_jump;
+                             uop_next.is_jump ||
+                             uop_next.is_ecall;
 
         if (decoded_IR.opcode == OP_S_TYPE) begin
           stq_bus.push <= 1'b1;
@@ -206,8 +207,15 @@ module Decoder (
         uop_next.imm_kind = IMM_U;
       end
 
-      OP_I_FENCE_TYPE, OP_I_ECALL_TYPE: begin
+      OP_I_FENCE_TYPE: begin
         // TODO
+        $warning("Decoder: Fence and ecall instructions are not fully implemented yet.");
+      end
+
+      OP_I_ECALL_TYPE: begin
+        uop_next.is_ecall = 1'b1;
+
+        // You will also need a way to read a7/syscall number and other args.
         $warning("Decoder: Fence and ecall instructions are not fully implemented yet.");
       end
 

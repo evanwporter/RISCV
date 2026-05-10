@@ -188,6 +188,7 @@ package riscv_decoder_types_pkg;
     logic is_jump;
     logic is_load;
     logic is_store;
+    logic is_ecall;
 
     logic  predicted_taken;
     word_t predicted_target;

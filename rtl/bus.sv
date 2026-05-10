@@ -40,6 +40,8 @@ interface Commit_if;
 
   modport STQ_Side(input committed_rob_entries);
 
+  modport Syscall_Side(input committed_rob_entries);
+
 endinterface : Commit_if
 
 interface ReorderBuffer_if;
@@ -149,7 +151,6 @@ interface RF_Read_if;
   logic en;
   physical_reg_t addr;
   word_t data;
-  addr_t PC;
 
   modport RF_side(input en, input addr, output data);
 

@@ -7,9 +7,6 @@ import riscv_rob_types_pkg::*;
 
 package riscv_renamer_util_pkg;
 
-  import riscv_renamer_types_pkg::*;
-  import riscv_regs_types_pkg::*;
-
   /// Get the next free physical register from the free list. This is used for renaming
   /// destination registers of new instructions.
   /// Could be replaced with always_comb

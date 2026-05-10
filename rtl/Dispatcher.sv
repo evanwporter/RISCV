@@ -29,7 +29,7 @@ module Dispatcher (
     if (rat_out.advance_pipeline) begin
       rob_bus.push = 1;
       rob_bus.push_entry.valid = 1;
-      rob_bus.push_entry.busy = 1;
+      rob_bus.push_entry.busy = 0;  // Ecall doesn't need to wait for execution to commit
       rob_bus.push_entry.exception = 0;
       rob_bus.push_entry.old_dest = rat_out.Pd_old;
       rob_bus.push_entry.new_dest = rat_out.Pd_new;
@@ -40,6 +40,11 @@ module Dispatcher (
       rob_bus.push_entry.rd = rat_out.uop.rd;
       rob_bus.push_entry.has_rd = rat_out.uop.has_rd;
       rob_bus.push_entry.rob_idx = rob_bus.tail_ptr;
+
+      if (rat_out.uop.is_ecall) begin
+        rob_bus.push_entry.is_ecall = 1;
+        rob_bus.push_entry.busy = 1;
+      end
     end
   end
 
@@ -48,7 +53,12 @@ module Dispatcher (
     alu_iq_bus.push = 0;
     alu_iq_bus.push_entry = '0;
 
-    if (rat_out.advance_pipeline && (rat_out.uop.is_alu || rat_out.uop.is_branch || rat_out.uop.is_jump)) begin
+    if (rat_out.advance_pipeline && 
+       (rat_out.uop.is_alu || 
+        rat_out.uop.is_branch || 
+        rat_out.uop.is_jump || 
+        rat_out.uop.is_ecall)) begin
+
       alu_iq_bus.push = 1;
 
       alu_iq_bus.push_entry.valid = 1;

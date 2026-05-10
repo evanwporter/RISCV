@@ -16,13 +16,17 @@ module ReorderBuffer (
 
     ReorderBuffer_if.ROB_Side bus,
     Commit_if.ROB_Side commit_bus,
-    Writeback_if.Renamer_Side wb_bus
+    Writeback_if.Renamer_Side wb_bus,
+
+    Syscall_if.ReorderBuffer_Side su_bus
 );
 
   // initial begin
   //   `RV_ASSERT((ROB_WIDTH <= 1) || ((ROB_WIDTH & (ROB_WIDTH - 1)) != 0),
   //              ("ROB_WIDTH must be a power of two. Got ROB_WIDTH=%0d", ROB_WIDTH))
   // end
+
+  // TODO: make it a circular buffer by tracking the count
 
   ROB_entry_t entries[ROB_WIDTH];
 

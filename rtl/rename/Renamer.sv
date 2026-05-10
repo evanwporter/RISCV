@@ -309,12 +309,12 @@ module RegisterRenamer (
     if (!reset && !flush_info.valid) begin
       if ($past(decoder_out.valid && rename_stall && !flush_info.valid)) begin
         `RV_ASSERT(decoder_out.valid,
-                   ("Decoder dropped valid instruction during rename stall. old_pc=%0d", $past(
-                   decoder_out.uop.pc)));
+                   ("Decoder dropped valid instruction during rename stall. old_pc=%0d", $past
+                   (decoder_out.uop.pc)))
 
         `RV_ASSERT(decoder_out.uop.pc == $past(decoder_out.uop.pc),
-                   ("Decoder PC changed during rename stall: old_pc=%0d new_pc=%0d", $past(
-                   decoder_out.uop.pc), decoder_out.uop.pc));
+                   ("Decoder PC changed during rename stall: old_pc=%0d new_pc=%0d", $past
+                   (decoder_out.uop.pc), decoder_out.uop.pc))
       end
     end
   end
@@ -324,7 +324,7 @@ module RegisterRenamer (
     for (int r = 0; r < 32; r++) begin
       for (int s = r + 1; s < 32; s++) begin
         `RV_ASSERT(!(RAT[r] != P0 && RAT[r] == RAT[s]),
-                   ("RAT alias: x%0d and x%0d both map to P%0d", r, s, RAT[r]));
+                   ("RAT alias: x%0d and x%0d both map to P%0d", r, s, RAT[r]))
       end
     end
   end
@@ -333,10 +333,10 @@ module RegisterRenamer (
   always_ff @(posedge clk) begin
     if (!reset && flush_info.valid) begin
       `RV_ASSERT(checkpoints[flush_info.rob_idx].valid,
-                 ("Flush to invalid checkpoint: rob_idx=%0d", flush_info.rob_idx));
+                 ("Flush to invalid checkpoint: rob_idx=%0d", flush_info.rob_idx))
 
       `RV_ASSERT(!checkpoints[flush_info.rob_idx].free_list[P0],
-                 ("Checkpoint free list has P0 free: rob_idx=%0d", flush_info.rob_idx));
+                 ("Checkpoint free list has P0 free: rob_idx=%0d", flush_info.rob_idx))
 
       for (int r = 0; r < 32; r++) begin
         `RV_ASSERT(

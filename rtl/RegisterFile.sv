@@ -10,6 +10,8 @@ module RegisterFile (
 
     Writeback_if.RegisterFile_Side wb_bus,
 
+    Syscall_if.RegisterFile_Side su_bus,
+
     RF_Read_if.RF_side  alu_read_A_bus,
     RF_Read_if.RF_side  alu_read_B_bus,
     RF_Write_if.RF_side alu_write_bus,
@@ -56,8 +58,15 @@ module RegisterFile (
 
       regs[P0] <= '0;
 
+      for (int i = 0; i < COMMIT_WIDTH; i++) begin
+        if (su_bus.syscall_req[i].valid) begin
+          // TODO: connect the renamer
+          regs[su_bus.RAT_10] <= su_bus.syscall_req[i].result;
+        end
+      end
+
       wb_bus.alu_writeback.valid <= 0;
-      wb_bus.alu_writeback.pdst <= P0;
+      wb_bus.alu_writeback.pdst  <= P0;
       if (alu_write_bus.en) begin
         wb_bus.alu_writeback.valid <= 1;
         wb_bus.alu_writeback.pdst <= alu_write_bus.addr;
