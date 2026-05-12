@@ -1,5 +1,8 @@
 add_executable(test_ooo)
-target_sources(test_ooo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ooo.cpp ${CMAKE_CURRENT_SOURCE_DIR}/util.cpp)
+target_sources(test_ooo 
+    PRIVATE 
+        ${CMAKE_CURRENT_SOURCE_DIR}/ooo.cpp 
+        ${CMAKE_CURRENT_SOURCE_DIR}/syscall.cpp)
 
 find_package(reflectcpp CONFIG REQUIRED)
 target_link_libraries(test_ooo PRIVATE reflectcpp::reflectcpp)
@@ -7,6 +10,12 @@ target_link_libraries(test_ooo PRIVATE reflectcpp::reflectcpp)
 enable_testing()
 find_package(GTest CONFIG REQUIRED)
 target_link_libraries(test_ooo PRIVATE GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
+
+target_link_libraries(test_ooo PRIVATE libutil)
+
+target_include_directories(test_ooo PRIVATE
+    ${RV_TESTS_DIR}/
+)
 
 add_test(AllTestsInMain test_ooo)
 

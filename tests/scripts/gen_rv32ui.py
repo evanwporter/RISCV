@@ -4,8 +4,6 @@ from pathlib import Path
 import argparse
 import sys
 
-# Adjust this import depending on where you place ninja_syntax.py.
-# If ninja_syntax.py is next to this script, this works.
 from ninja_syntax import Writer
 
 
@@ -66,11 +64,6 @@ def main() -> int:
         default="ilp32",
         help="RISC-V ABI value.",
     )
-    parser.add_argument(
-        "--include-memory-tests",
-        action="store_true",
-        help="Include lb/lbu/lh/lhu/lw/sb/sh/sw/ld_st/st_ld/ma_data/fence_i.",
-    )
 
     args = parser.parse_args()
 
@@ -92,7 +85,7 @@ def main() -> int:
 
     if not env_dir.exists():
         print(f"error: missing custom env directory: {env_dir}", file=sys.stderr)
-        print("expected: tests/riscv-standalone-env/riscv_test.h", file=sys.stderr)
+        print("expected: tests/scripts/riscv_test.h", file=sys.stderr)
         return 1
 
     if not (env_dir / "riscv_test.h").exists():
@@ -105,24 +98,11 @@ def main() -> int:
 
     sources = sorted(rv32ui_dir.glob("*.S"))
 
-    # Skip tests that are likely not useful for the current early core unless requested.
-    memory_or_special = {
-        "lb",
-        "lbu",
-        "lh",
-        "lhu",
-        "lw",
-        "sb",
-        "sh",
-        "sw",
-        "ld_st",
-        "st_ld",
-        "ma_data",
+    unsupported_tests = {
         "fence_i",
     }
 
-    if not args.include_memory_tests:
-        sources = [s for s in sources if s.stem not in memory_or_special]
+    sources = [s for s in sources if s.stem not in unsupported_tests]
 
     out_path: Path = args.out
 
@@ -202,12 +182,8 @@ def main() -> int:
             binary = win_path(args.builddir / f"{base}.bin")
             hex_file = f"tests/asm/riscv/{base}.hex"
 
-            # Use absolute source path for reliability.
             src_path = win_path(src)
 
-            # Many rv32ui tests include the corresponding rv64ui test body.
-            # Add it as an implicit Ninja dependency so changing rv64ui/add.S
-            # rebuilds rv32ui-add.elf.
             rv64_src = rv64ui_dir / src.name
             implicit_deps: list[str] = []
 
@@ -235,10 +211,6 @@ def main() -> int:
 
     print(f"wrote {out_path}")
     print(f"generated {len(defaults)} rv32ui tests")
-    if not args.include_memory_tests:
-        print(
-            "memory/special tests skipped; pass --include-memory-tests to include them"
-        )
     return 0
 
 

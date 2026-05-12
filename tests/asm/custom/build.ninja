@@ -18,7 +18,7 @@ rule objcopy_bin
   description = OBJCOPY $out
 
 rule bin_to_hex
-  command = $python ..\..\scripts/bin2hex.py $in $out
+  command = $python ..\..\..\scripts/bin2hex.py $in $out
   description = BIN2HEX $out
 
 build $builddir/sub.o: assemble sub.s

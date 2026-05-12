@@ -8,7 +8,7 @@ test1:
   addi x1, x0, 42 # load data value to store
 
   # PC = 4
-  addi x2, x0, 32 # set address to store to and load from
+  la x2, test_mem # set address to store to and load from
 
   # PC = 8
   sw x1, 0(x2) # store 42 at address 0
@@ -59,3 +59,8 @@ fail2:
 
   # PC = 64
   beq  x0, x0, fail2
+
+.section .data
+test_mem:
+    .word 0
+    .word 0

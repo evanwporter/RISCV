@@ -3,38 +3,41 @@ import riscv_types_pkg::*;
 import riscv_constants_pkg::*;
 
 module MockInstructionMemory (
-    Memory_Bus_if.Slave_side bus,
+    input logic clk,
+    input logic reset,
+    Memory_Bus_if.Slave_side instr_bus,
+    Memory_Bus_if.Slave_side data_bus,
     output logic instr_valid
 );
 
-  word_t mem[4096];
+  localparam int MEM_DEPTH_WORDS = 4096;
+  localparam int MEM_BYTES = MEM_DEPTH_WORDS * 4;
+
+  logic [7:0] mem[0:MEM_BYTES-1];
 
   string hex_file;
   int unsigned program_words;
 
   initial begin
-    // Try to get from command line
-    if (!$value$plusargs("hex=%s", hex_file)) begin
-      hex_file = "ls.hex";
-    end
-
-    $display("Loading program: %s", hex_file);
-    $readmemh(hex_file, mem);
-  end
-
-  initial begin
     string line;
     int fd;
     int code;
-    word_t dummy;
+    word_t word;
+    int unsigned addr;
 
     program_words = 0;
 
     // Re-open file only to count instruction words.
+    if (!$value$plusargs("hex=%s", hex_file)) begin
+      $fatal(1, "Missing +hex=<file>");
+    end
+
     fd = $fopen(hex_file, "r");
     if (fd == 0) begin
       $error(1, "Could not open hex file: %s", hex_file);
     end
+
+    addr = 0;
 
     while (!$feof(
         fd
@@ -42,39 +45,70 @@ module MockInstructionMemory (
       line = "";
       code = $fgets(line, fd);
 
-      if (code != 0) begin
-        // Try to parse a hex word from the line.
-        // Lines that do not start with hex data are ignored.
-        if ($sscanf(line, "%h", dummy) == 1) begin
-          program_words++;
+      // Try to parse a hex word from the line.
+      // Lines that do not start with hex data are ignored.
+      if (code != 0 && $sscanf(line, "%h", word) == 1) begin
+        if (addr + 3 >= MEM_BYTES) begin
+          $fatal(1, "Hex file too large for mock memory: %s", hex_file);
         end
+
+        // RISC-V little-endian word layout
+        mem[addr+0] = word[7:0];
+        mem[addr+1] = word[15:8];
+        mem[addr+2] = word[23:16];
+        mem[addr+3] = word[31:24];
+
+        addr += 4;
+        program_words++;
       end
     end
 
     $fclose(fd);
 
-    $display("Loaded %0d instruction words", program_words);
+    $display("Loaded %0d words from %s", program_words, hex_file);
   end
 
   always_comb begin
-    int unsigned idx;
+    int unsigned addr;
+    addr = instr_bus.addr;
 
-    // instr_valid = 1'b1;
-    // bus.rdata = mem[bus.addr[31:2]];
+    instr_valid = (addr <= MEM_BYTES - 4);
 
-    idx = bus.addr[31:2];
-
-    instr_valid = idx < program_words;
-
-    if (idx < program_words) begin
-      bus.rdata = mem[idx];
-      $display("Instruction Memory read: addr=%0h, data=%0h", bus.addr, bus.rdata);
+    if (instr_valid) begin
+      instr_bus.rdata = {mem[addr+3], mem[addr+2], mem[addr+1], mem[addr+0]};
     end else begin
-      bus.rdata = 32'h00000013;
+      instr_bus.rdata = 32'h00000013;  // NOP
     end
   end
 
-endmodule : MockInstructionMemory
+  always_comb begin
+    int unsigned addr;
+    addr = data_bus.addr;
+
+    if (addr <= MEM_BYTES - 4) begin
+      data_bus.rdata = {mem[addr+3], mem[addr+2], mem[addr+1], mem[addr+0]};
+    end else begin
+      data_bus.rdata = 32'hx;
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    if (!reset && data_bus.write_en) begin
+      int unsigned addr;
+      addr = data_bus.addr;
+
+      $display("STORE addr=%h wdata=%h", data_bus.addr, data_bus.wdata);
+
+      if (addr <= MEM_BYTES - 4) begin
+        mem[addr+0] <= data_bus.wdata[7:0];
+        mem[addr+1] <= data_bus.wdata[15:8];
+        mem[addr+2] <= data_bus.wdata[23:16];
+        mem[addr+3] <= data_bus.wdata[31:24];
+      end
+    end
+  end
+
+endmodule
 
 module ooo_top_tb (
     input logic clk,
@@ -201,14 +235,11 @@ module ooo_top_tb (
 
   // Memory
   MockInstructionMemory instr_mem (
-      .bus(instruction_bus),
-      .instr_valid(instr_valid)
-  );
-
-  MockMemory data_mem (
-      .clk  (clk),
+      .clk(clk),
       .reset(reset),
-      .bus  (data_bus)
+      .instr_bus(instruction_bus),
+      .data_bus(data_bus),
+      .instr_valid(instr_valid)
   );
 
   int unsigned cycle = 0;

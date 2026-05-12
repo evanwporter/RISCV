@@ -7,8 +7,8 @@
 #include "Vooo__Dpi.h"
 #include "Vooo___024root.h"
 #include "Vooo_ooo_top_tb.h"
+#include "common/util.hpp"
 #include "snapshot.hpp"
-#include "util.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -23,6 +23,9 @@ vluint64_t g_verilator_time = 0;
 namespace fs = std::filesystem;
 
 static constexpr int timeout_cycles = 1000;
+
+static constexpr int ROB_WIDTH_TB = 16;
+static constexpr int IQ_WIDTH_TB = 16;
 
 double sc_time_stamp() {
     return static_cast<double>(g_verilator_time);
@@ -273,23 +276,23 @@ TEST_P(RV32UITest, Passes) {
         }
 
         struct {
-            int PC[256];
-            int valid[256];
-            int busy[256];
+            int PC[ROB_WIDTH_TB];
+            int valid[ROB_WIDTH_TB];
+            int busy[ROB_WIDTH_TB];
         } ROB;
 
         struct AIQ {
-            int PC[256];
-            int valid[256];
-            int prs1_ready[256];
-            int prs2_ready[256];
+            int PC[IQ_WIDTH_TB];
+            int valid[IQ_WIDTH_TB];
+            int prs1_ready[IQ_WIDTH_TB];
+            int prs2_ready[IQ_WIDTH_TB];
         } AIQ;
 
         struct MIQ {
-            int PC[256];
-            int valid[256];
-            int prs1_ready[256];
-            int prs2_ready[256];
+            int PC[IQ_WIDTH_TB];
+            int valid[IQ_WIDTH_TB];
+            int prs1_ready[IQ_WIDTH_TB];
+            int prs2_ready[IQ_WIDTH_TB];
         } MIQ;
 
         const auto snapshot = sim.get_cycle_snapshot();
@@ -302,7 +305,7 @@ TEST_P(RV32UITest, Passes) {
 
         // print ROB
         printf("  ROB: ");
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i < ROB_WIDTH_TB; i++) {
             if (ROB.valid[i]) {
                 printf("[%d:%d:%s] ", i, ROB.PC[i], ROB.busy[i] ? "1" : "0");
             }
@@ -311,7 +314,7 @@ TEST_P(RV32UITest, Passes) {
 
         // print AIQ
         printf("  AIQ: ");
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i < IQ_WIDTH_TB; i++) {
             if (AIQ.valid[i]) {
                 printf("[%d:%d,%s,%s] ", i, AIQ.PC[i], AIQ.prs1_ready[i] ? "1" : "0", AIQ.prs2_ready[i] ? "1" : "0");
             }
@@ -320,7 +323,7 @@ TEST_P(RV32UITest, Passes) {
 
         // print MIQ
         printf("  MIQ: ");
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i < IQ_WIDTH_TB; i++) {
             if (MIQ.valid[i]) {
                 printf("[%d:%d,%s,%s] ", i, MIQ.PC[i], MIQ.prs1_ready[i] ? "1" : "0", MIQ.prs2_ready[i] ? "1" : "0");
             }

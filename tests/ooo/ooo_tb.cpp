@@ -25,6 +25,14 @@ double sc_time_stamp() {
     return static_cast<double>(g_verilator_time);
 }
 
+extern "C" int rv_syscall(
+    int syscall_num,
+    int arg0,
+    int arg1,
+    int arg2,
+    int pc,
+    int* halt);
+
 void tick(Vooo* top, VerilatedVcdC* tfp, VerilatedContext* contextp) {
     // rising edge
     top->clk = 1;
