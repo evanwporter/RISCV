@@ -13,6 +13,9 @@ interface STQ_if;
   /// We pop the top of STQ as soon as we sucessfully send it to memory
   logic pop;
 
+  /// ALlocate a new store in the STQ and record its ROB index
+  logic [ROB_IDX_WIDTH-1:0] push_rob_idx;
+
   logic full;
   logic empty;
 
@@ -66,10 +69,11 @@ interface STQ_if;
   /// Data to send to memory for the head store
   word_t mem_store_data;
 
-  modport Decoder_side(input tail_idx, output push);
+  modport Decoder_side(input tail_idx, output push, output push_rob_idx);
 
   modport STQ_side(
       input push, pop,
+      input push_rob_idx,
       input write_addr, write_addr_idx, write_addr_value,
       input write_data, write_data_idx, write_data_value,
       output full, empty,
@@ -101,9 +105,9 @@ interface LDQ_if;
 
   logic full;
 
-  /// Tail pointer for the next available slot in the LDQ
+  /// Pointer to the first available slot in the LDQ
   /// Recorded by the decoder and used to track the LDQ entry in the memory IQ.
-  logic [LDQ_IDX_WIDTH-1:0] tail_idx;
+  logic [LDQ_IDX_WIDTH-1:0] free_idx;
 
   // -------------------------
   // Record Load Address
@@ -129,7 +133,7 @@ interface LDQ_if;
 
   addr_t mem_load_PC;
 
-  modport Decoder_side(input tail_idx, output push);
+  modport Decoder_side(input free_idx, output push);
 
   modport LSU_side(
       input mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC
@@ -140,7 +144,7 @@ interface LDQ_if;
       input write_addr, write_addr_idx, write_addr_value,
       output full,
       output mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC,
-      output tail_idx
+      output free_idx
   );
 
   modport Execution_side(output write_addr, output write_addr_idx, output write_addr_value);

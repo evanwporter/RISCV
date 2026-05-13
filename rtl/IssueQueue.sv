@@ -14,8 +14,6 @@ module IssueQueue (
 
   IQ_entry_t entries[IQ_WIDTH];
 
-  IssueQueue_if issueQueue_if ();
-
   // Determine if IQ is full
   always_comb begin
     bus.full = 1'b1;
@@ -23,10 +21,6 @@ module IssueQueue (
       if (!entries[i].valid) bus.full = 1'b0;
     end
   end
-
-  // ------------------------------------------------------------
-  // Wakeup (broadcast)
-  // ------------------------------------------------------------
 
   // Find first free slot (for push)
   logic [IQ_IDX_WIDTH-1:0] free_idx;

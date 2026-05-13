@@ -1,4 +1,5 @@
 import riscv_types_pkg::*;
+import riscv_regs_types_pkg::*;
 import riscv_lsu_types_pkg::*;
 import riscv_constants_pkg::*;
 import riscv_decoder_types_pkg::*;
@@ -9,7 +10,8 @@ module LDQ (
 
     LDQ_if.LDQ_side bus,
     STQ_if.STQ_side stq_bus,
-    input rat_output_t rat_out
+    input rat_output_t rat_out,
+    input flush_t flush_info
 );
 
   ldq_entry_t entries[LDQ_WIDTH];
@@ -31,7 +33,7 @@ module LDQ (
   integer k;
   always_ff @(posedge clk) begin
     if (reset) begin
-      bus.tail_idx <= 0;
+      bus.free_idx <= 0;
       count <= 0;
       for (k = 0; k < LDQ_WIDTH; k++) begin
         entries[k].valid <= 0;
@@ -39,10 +41,10 @@ module LDQ (
     end else begin
       // Allocate
       if (bus.push && !bus.full) begin
-        entries[bus.tail_idx] <= '0;
-        entries[bus.tail_idx].valid <= 1'b1;
-        entries[bus.tail_idx].st_dep_mask <= stq_dep_mask;
-        bus.tail_idx <= bus.tail_idx + 1'b1;
+        entries[bus.free_idx] <= '0;
+        entries[bus.free_idx].valid <= 1'b1;
+        entries[bus.free_idx].st_dep_mask <= stq_dep_mask;
+        bus.free_idx <= bus.free_idx + 1'b1;
         count <= count + 1'b1;
       end
 

@@ -1,13 +1,19 @@
 import riscv_types_pkg::*;
 import riscv_lsu_types_pkg::*;
 import riscv_constants_pkg::*;
+import riscv_util_pkg::*;
+import riscv_regs_types_pkg::*;
+import riscv_decoder_types_pkg::*;
 
 module STQ (
     input logic clk,
     input logic reset,
 
     STQ_if.STQ_side bus,
-    Commit_if.STQ_Side commit_bus
+    Commit_if.STQ_Side commit_bus,
+    ReorderBuffer_if.IQ_Side rob_bus,
+    input rat_output_t rat_out,
+    input flush_t flush_info
 );
 
   stq_entry_t entries[STQ_WIDTH];
@@ -40,6 +46,16 @@ module STQ (
     end
   endgenerate
 
+  function automatic logic [STQ_IDX_WIDTH-1:0] stq_idx_add(input logic [STQ_IDX_WIDTH-1:0] idx,
+                                                           input logic [STQ_IDX_WIDTH:0] amount);
+    logic [STQ_IDX_WIDTH:0] tmp;
+    begin
+      tmp = idx + amount;
+      if (tmp >= STQ_WIDTH) stq_idx_add = tmp - STQ_WIDTH;
+      else stq_idx_add = tmp[STQ_IDX_WIDTH-1:0];
+    end
+  endfunction
+
   integer k;
   always_ff @(posedge clk) begin
     if (reset) begin
@@ -49,6 +65,25 @@ module STQ (
       for (k = 0; k < STQ_WIDTH; k++) begin
         entries[k] <= '0;
       end
+    end else if (flush_info.valid) begin
+
+      int survivor_count;
+      survivor_count = '0;
+
+      // Invalidate younger entries
+      for (int j = 0; j < STQ_WIDTH; j++) begin
+        if (entries[j].valid) begin
+          if (is_younger(entries[j].rob_idx, flush_info.rob_idx, rob_bus.head_ptr)) begin
+            entries[j] <= '0;
+          end else begin
+            survivor_count = survivor_count + 1;
+          end
+        end
+      end
+
+      count <= survivor_count[STQ_IDX_WIDTH:0];
+      bus.tail_idx <= bus.head_idx + survivor_count[STQ_IDX_WIDTH-1:0];
+
     end else begin
       // Allocate
       if (bus.push && !bus.full) begin
@@ -82,6 +117,12 @@ module STQ (
         entries[bus.head_idx] <= '0;
         bus.head_idx <= bus.head_idx + 1'b1;
         count <= count - 1'b1;
+      end
+
+      // Update entry when its renamed
+      if (rat_out.advance_pipeline && rat_out.uop.is_store) begin
+        entries[rat_out.stq_idx].rob_idx <= rat_out.rob_idx;
+        entries[rat_out.stq_idx].PC <= rat_out.uop.pc;
       end
     end
   end

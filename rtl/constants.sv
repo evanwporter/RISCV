@@ -7,10 +7,10 @@ package riscv_constants_pkg;
   /// TODO: the amount that can be popped from the iq should not depend on commit width
   localparam int COMMIT_WIDTH = 4;
 
-  localparam int STQ_WIDTH = 4;
+  localparam int STQ_WIDTH = 256;
   localparam int STQ_IDX_WIDTH = $clog2(STQ_WIDTH);
 
-  localparam int LDQ_WIDTH = 4;
+  localparam int LDQ_WIDTH = 256;
   localparam int LDQ_IDX_WIDTH = $clog2(LDQ_WIDTH);
 
   localparam int ROB_WIDTH = 16;

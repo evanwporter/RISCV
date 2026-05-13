@@ -48,6 +48,11 @@ package riscv_lsu_types_pkg;
 
     /// Data to store
     word_t data;
+
+    /// ROB index of the store
+    logic [ROB_IDX_WIDTH-1:0] rob_idx;
+
+    addr_t PC;
   } stq_entry_t;
 
   typedef enum {

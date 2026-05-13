@@ -213,7 +213,10 @@ module RISCV (
       .clk(clk),
       .reset(reset),
       .bus(stq_bus),
-      .commit_bus(commit_bus)
+      .commit_bus(commit_bus),
+      .rob_bus(rob_bus),
+      .rat_out(rat_out),
+      .flush_info(flush_info)
   );
 
   LDQ ldq (
@@ -221,7 +224,9 @@ module RISCV (
       .reset(reset),
       .bus(ldq_bus),
       .stq_bus(stq_bus),
-      .rat_out(rat_out)
+      // .rob_bus(rob_bus),
+      .rat_out(rat_out),
+      .flush_info(flush_info)
   );
 
   LSU lsu (

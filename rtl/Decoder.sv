@@ -45,7 +45,7 @@ module Decoder (
           decoder_out.stq_idx <= stq_bus.tail_idx;
         end else if (decoded_IR.opcode == OP_I_LOAD_TYPE) begin
           ldq_bus.push <= 1'b1;
-          decoder_out.ldq_idx <= ldq_bus.tail_idx;
+          decoder_out.ldq_idx <= ldq_bus.free_idx;
         end
       end
     end
