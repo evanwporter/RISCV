@@ -1,5 +1,5 @@
 import riscv_constants_pkg::*;
-import riscv_types_pkg::*;
+// import riscv_types_pkg::*;
 import riscv_regs_types_pkg::*;
 import riscv_decoder_types_pkg::*;
 import riscv_renamer_types_pkg::*;
@@ -60,8 +60,6 @@ module RegisterRenamer (
   uop_t uop;
   assign uop = decoder_out.uop;
 
-  uop_t uop_next;
-
   /// Obtain the next free physical register from the free list. This is used for renaming
   /// destination registers of new instructions.
   next_free_t next_free;
@@ -113,7 +111,6 @@ module RegisterRenamer (
     free_list_next = free_list;
     busy_list_next = busy_list;
     rat_out_next = '0;
-    uop_next = uop;
 
     // ------------------------------------------------------------
     // Flush path
@@ -183,7 +180,10 @@ module RegisterRenamer (
       rat_out_next.Pd_old = Pd_old;
       rat_out_next.Pd_new = Pd_new;
 
-      rat_out_next.uop = uop_next;
+      rat_out_next.uop = uop;
+      rat_out_next.uop.pdst = Pd_new;
+      rat_out_next.uop.prs1 = Ps1;
+      rat_out_next.uop.prs2 = Ps2;
 
       rat_out_next.stq_idx = decoder_out.stq_idx;
       rat_out_next.ldq_idx = decoder_out.ldq_idx;
@@ -197,9 +197,7 @@ module RegisterRenamer (
     end
 
     if (renamer_fire) begin
-      uop_next.pdst = Pd_new;
-      uop_next.prs1 = Ps1;
-      uop_next.prs2 = Ps2;
+
     end
   end
 
@@ -425,6 +423,14 @@ module RegisterRenamer (
         `RV_ASSERT(!free_list_next[RAT_next[r]],
                    ("Flush recovery would make RAT[x%0d]=P%0d free", r, RAT_next[r]))
       end
+    end
+  end
+
+  always_comb begin
+    if (rat_out.valid) begin
+      `RV_ASSERT(
+          rat_out.Pd_new == rat_out.uop.pdst,
+          ("Renamer out is not consistent with uop: expected Pd_new=P%0d got Pd_new=P%0d", rat_out.uop.pdst, rat_out.Pd_new))
     end
   end
 

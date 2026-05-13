@@ -55,7 +55,7 @@ module Dispatcher (
 
       rob_bus.push_entry.issued = 0;
 
-      if (uop.has_rd) begin
+      if (!uop.has_rd) begin
         rob_bus.push_entry.issued = 1;
       end
 

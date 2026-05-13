@@ -188,8 +188,12 @@ module ReorderBuffer (
       if (wb_bus.alu_writeback.valid) begin
         ROB_entry_t entry;
         entry = entries[wb_bus.alu_writeback.rob_idx];
-        `RV_ASSERT(wb_bus.alu_writeback.pdst == entry.uop.pdst,
-                   ("Invalid destination %d", wb_bus.alu_writeback.pdst))
+        `RV_ASSERT(
+            entry.uop.has_rd,
+            ("ALU writeback to instruction with no destination. ROB idx: %0d, PC: %0d", wb_bus.alu_writeback.rob_idx, entry.PC))
+        `RV_ASSERT(
+            wb_bus.alu_writeback.pdst == entry.uop.pdst,
+            ("Invalid destination expected p%0d, recieved p%0d", wb_bus.alu_writeback.pdst, entry.uop.pdst))
         entries[wb_bus.alu_writeback.rob_idx].uop.dest_value <= wb_bus.alu_writeback.data;
         entries[wb_bus.alu_writeback.rob_idx].issued <= 1'b1;
       end
@@ -197,8 +201,12 @@ module ReorderBuffer (
       if (wb_bus.mem_writeback.valid) begin
         ROB_entry_t entry;
         entry = entries[wb_bus.mem_writeback.rob_idx];
-        `RV_ASSERT(wb_bus.mem_writeback.pdst == entry.uop.pdst,
-                   ("Invalid destination %d", wb_bus.mem_writeback.pdst))
+        `RV_ASSERT(
+            entry.uop.has_rd,
+            ("Memory writeback to instruction with no destination. ROB idx: %0d, PC: %0d", wb_bus.mem_writeback.rob_idx, entry.PC))
+        `RV_ASSERT(
+            wb_bus.mem_writeback.pdst == entry.uop.pdst,
+            ("Invalid destination expected p%0d, recieved p%0d", wb_bus.mem_writeback.pdst, entry.uop.pdst))
         entries[wb_bus.mem_writeback.rob_idx].uop.dest_value <= wb_bus.mem_writeback.data;
         entries[wb_bus.mem_writeback.rob_idx].issued <= 1'b1;
       end
