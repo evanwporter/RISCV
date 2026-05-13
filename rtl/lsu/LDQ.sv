@@ -38,6 +38,19 @@ module LDQ (
       for (k = 0; k < LDQ_WIDTH; k++) begin
         entries[k].valid <= 0;
       end
+
+    end else if (flush_info.valid) begin
+
+      // Invalidate younger entries
+      for (int j = 0; j < LDQ_WIDTH; j++) begin
+        if (entries[j].valid) begin
+          if (is_younger(entries[j].rob_idx, flush_info.rob_idx, rob_bus.head_ptr)) begin
+            entries[j].valid <= 1'b0;
+            entries[j] <= '0;
+          end
+        end
+      end
+
     end else begin
       // Allocate
       if (bus.push && !bus.full) begin
