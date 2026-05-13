@@ -60,6 +60,8 @@ module RegisterRenamer (
   uop_t uop;
   assign uop = decoder_out.uop;
 
+  uop_t uop_next;
+
   /// Obtain the next free physical register from the free list. This is used for renaming
   /// destination registers of new instructions.
   next_free_t next_free;
@@ -111,6 +113,7 @@ module RegisterRenamer (
     free_list_next = free_list;
     busy_list_next = busy_list;
     rat_out_next = '0;
+    uop_next = uop;
 
     // ------------------------------------------------------------
     // Flush path
@@ -180,7 +183,7 @@ module RegisterRenamer (
       rat_out_next.Pd_old = Pd_old;
       rat_out_next.Pd_new = Pd_new;
 
-      rat_out_next.uop = uop;
+      rat_out_next.uop = uop_next;
 
       rat_out_next.stq_idx = decoder_out.stq_idx;
       rat_out_next.ldq_idx = decoder_out.ldq_idx;
@@ -192,9 +195,16 @@ module RegisterRenamer (
         busy_list_next[Pd_new] = 1'b1;
       end
     end
+
+    if (renamer_fire) begin
+      uop_next.pdst = Pd_new;
+      uop_next.prs1 = Ps1;
+      uop_next.prs2 = Ps2;
+    end
   end
 
   always_comb begin
+
     rs1 = uop.has_rs1 ? uop.rs1 : x0;
     rs2 = uop.has_rs2 ? uop.rs2 : x0;
 

@@ -1,6 +1,8 @@
 import testbench_utils_pkg::*;
 import riscv_types_pkg::*;
 import riscv_constants_pkg::*;
+import riscv_rob_types_pkg::*;
+import riscv_regs_types_pkg::*;
 
 module MockInstructionMemory (
     input logic clk,
@@ -268,12 +270,132 @@ module ooo_top_tb (
     end
   endfunction
 
-  always @(posedge clk) begin
+  always_ff @(posedge clk) begin
     if (reset) begin
       cycle <= 0;
     end else begin
       cycle <= cycle + 1;
     end
   end
+
+  // import "DPI-C" function int unsigned on_commit(
+  //   output int unsigned PC,
+  //   output int unsigned IR,
+  //   output int value
+  // );
+
+  // always_ff @(posedge clk) begin
+  //   if (reset) begin
+  //     // Do nothing on reset.
+  //   end else begin
+  //     for (int i = 0; i < COMMIT_WIDTH; i++) begin
+  //       ROB_entry_t entry;
+
+  //       int unsigned pc;
+  //       int unsigned ir;
+
+  //       int unsigned rd;
+  //       int rd_data;
+
+  //       int unsigned rd_wdata;
+  //       bit rd_we;
+
+  //       int unsigned rs1;
+  //       int unsigned rs2;
+  //       int imm;
+
+  //       int unsigned addr;
+  //       int unsigned store_data;
+
+  //       bit mem_we;
+  //       bit mem_re;
+  //       int unsigned mem_addr;
+  //       int unsigned mem_wdata;
+  //       int unsigned mem_rdata;
+
+  //       int unsigned next_pc;
+
+  //       entry = dut.rob.entries[dut.commit_bus.committed_rob_entries[i].rob_idx];
+
+  //       if (entry.valid) begin
+  //         pc = entry.PC;
+  //         ir = entry.uop.inst;
+
+  //         rd = x0;
+  //         rd_data = 0;
+
+  //         rd_wdata = 0;
+  //         rd_we = 1'b0;
+
+  //         mem_we    = 1'b0;
+  //         mem_re    = 1'b0;
+  //         mem_addr  = 0;
+  //         mem_wdata = 0;
+  //         mem_rdata = 0;
+
+  //         next_pc   = int unsigned'(entry.PC + 32'd4);
+
+  //         // ----------------------------
+  //         // Register destination
+  //         // ----------------------------
+  //         if (entry.uop.has_rd && entry.uop.rd != 0) begin
+  //           rd = int unsigned'(entry.uop.rd);
+
+  //           // TODO: Check if the rd_data is actually on the writeback bus
+  //           rd_data = dut.rf.regs[dut.renamer.RAT[entry.uop.rd]];
+
+  //           if (entry.uop.is_load) begin
+  //             rd_wdata = dut.ldq.entries[entry.ldq_idx];
+  //           end else begin
+  //             rd_wdata = entry.alu_result;
+  //           end
+
+  //         end
+
+  //         // ----------------------------
+  //         // Memory side effects
+  //         // ----------------------------
+  //         if (entry.uop.is_store) begin
+  //           mem_we    = 1'b1;
+  //           mem_addr  = int'(entry.store_addr);
+  //           mem_wdata = int'(entry.store_data);
+  //         end
+
+  //         if (entry.uop.is_load) begin
+  //           mem_re    = 1'b1;
+  //           mem_addr  = int'(entry.load_addr);
+  //           mem_rdata = int'(entry.ld_result);
+  //         end
+
+  //         // ----------------------------
+  //         // Control flow
+  //         // ----------------------------
+  //         if (entry.uop.is_branch || entry.uop.is_jump) begin
+  //           next_pc = int'(entry.actual_next_pc);
+  //         end
+
+  //         if (on_commit(
+  //                 pc,
+  //                 ir,
+  //                 rd
+  //                 // rd_wdata,
+  //                 // rd_we,
+  //                 // mem_we,
+  //                 // mem_re,
+  //                 // mem_addr,
+  //                 // mem_wdata,
+  //                 // mem_rdata,
+  //                 // next_pc
+  //             ) != 0) begin
+
+  //           $display(
+  //               "COMMIT[%0d]: PC=%08h IR=%08h rd_we=%0b rd=x%0d rd_wdata=%08h mem_we=%0b mem_re=%0b mem_addr=%08h mem_wdata=%08h mem_rdata=%08h next_pc=%08h",
+  //               i, pc, ir, rd_we, rd, rd_wdata, mem_we, mem_re, mem_addr, mem_wdata, mem_rdata,
+  //               next_pc);
+  //         end
+  //       end
+  //     end
+  //   end
+  // end
 
 endmodule

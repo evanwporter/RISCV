@@ -7,8 +7,8 @@ rv_add_rtl(
         ${CMAKE_CURRENT_SOURCE_DIR}/constants.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/types.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/regs_types.sv
-        ${CMAKE_CURRENT_SOURCE_DIR}/rob_types.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/decoder_types.sv
+        ${CMAKE_CURRENT_SOURCE_DIR}/rob_types.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/iq_types.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/renamer_types.sv
         ${CMAKE_CURRENT_SOURCE_DIR}/util.sv

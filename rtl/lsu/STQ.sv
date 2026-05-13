@@ -75,11 +75,7 @@ module STQ (
       // Invalidate younger entries
       for (int j = 0; j < STQ_WIDTH; j++) begin
         if (entries[j].valid) begin
-          if (j == rat_out.stq_idx) begin
-            entries[j] <= '0;
-            $display("Flushing STQ entry %d (rob_idx=%d), PC=%d", j, entries[j].rob_idx,
-                     entries[j].PC);
-          end else if (is_younger(entries[j].rob_idx, flush_info.rob_idx, rob_bus.head_ptr)) begin
+          if (is_younger(entries[j].rob_idx, flush_info.rob_idx, rob_bus.head_ptr)) begin
             entries[j] <= '0;
           end else begin
             survivor_count = survivor_count + 1;

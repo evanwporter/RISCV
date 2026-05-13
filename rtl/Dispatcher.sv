@@ -51,6 +51,13 @@ module Dispatcher (
       rob_bus.push_entry.rd = uop.rd;
       rob_bus.push_entry.has_rd = uop.has_rd;
       rob_bus.push_entry.rob_idx = rob_bus.tail_ptr;
+      rob_bus.push_entry.uop = uop;
+
+      rob_bus.push_entry.issued = 0;
+
+      if (uop.has_rd) begin
+        rob_bus.push_entry.issued = 1;
+      end
 
       if (uop.is_ecall) begin
         rob_bus.push_entry.is_ecall = 1;

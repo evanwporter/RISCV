@@ -167,9 +167,11 @@ package riscv_decoder_types_pkg;
     logic has_rs2;
 
     // Registers (physical)
-    logic [5:0] pdst;
-    logic [5:0] prs1;
-    logic [5:0] prs2;
+    physical_reg_t pdst;
+    physical_reg_t prs1;
+    physical_reg_t prs2;
+
+    word_t dest_value;
 
     logic prs1_ready;
     logic prs2_ready;

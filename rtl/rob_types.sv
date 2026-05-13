@@ -2,12 +2,16 @@ import riscv_types_pkg::*;
 import riscv_regs_types_pkg::*;
 import riscv_lsu_types_pkg::*;
 import riscv_constants_pkg::*;
+import riscv_decoder_types_pkg::*;
 
 package riscv_rob_types_pkg;
 
   typedef struct packed {
     logic valid;
     logic busy;
+
+    logic issued;
+
     logic exception;
 
     physical_reg_t old_dest;
@@ -33,6 +37,8 @@ package riscv_rob_types_pkg;
     logical_reg_t rd;
 
     logic has_rd;
+
+    uop_t uop;
 
   } ROB_entry_t;
 

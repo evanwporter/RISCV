@@ -184,6 +184,25 @@ module ReorderBuffer (
         tail <= next_tail;
       end
 
+      /// DEBUGGING
+      if (wb_bus.alu_writeback.valid) begin
+        ROB_entry_t entry;
+        entry = entries[wb_bus.alu_writeback.rob_idx];
+        `RV_ASSERT(wb_bus.alu_writeback.pdst == entry.uop.pdst,
+                   ("Invalid destination %d", wb_bus.alu_writeback.pdst))
+        entries[wb_bus.alu_writeback.rob_idx].uop.dest_value <= wb_bus.alu_writeback.data;
+        entries[wb_bus.alu_writeback.rob_idx].issued <= 1'b1;
+      end
+
+      if (wb_bus.mem_writeback.valid) begin
+        ROB_entry_t entry;
+        entry = entries[wb_bus.mem_writeback.rob_idx];
+        `RV_ASSERT(wb_bus.mem_writeback.pdst == entry.uop.pdst,
+                   ("Invalid destination %d", wb_bus.mem_writeback.pdst))
+        entries[wb_bus.mem_writeback.rob_idx].uop.dest_value <= wb_bus.mem_writeback.data;
+        entries[wb_bus.mem_writeback.rob_idx].issued <= 1'b1;
+      end
+
     end
   end
 
