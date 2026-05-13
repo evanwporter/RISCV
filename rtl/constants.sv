@@ -13,9 +13,9 @@ package riscv_constants_pkg;
   localparam int LDQ_WIDTH = 256;
   localparam int LDQ_IDX_WIDTH = $clog2(LDQ_WIDTH);
 
-  localparam int ROB_WIDTH = 16;
+  localparam int ROB_WIDTH = 256;
   localparam int ROB_IDX_WIDTH = $clog2(ROB_WIDTH);
 
-  localparam int IQ_WIDTH = 16;
+  localparam int IQ_WIDTH = 256;
   localparam int IQ_IDX_WIDTH = $clog2(IQ_WIDTH);
 endpackage : riscv_constants_pkg

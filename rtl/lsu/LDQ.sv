@@ -32,6 +32,9 @@ module LDQ (
   // Find first free slot (for push)
   logic found_free;
 
+  // If we found a free slot, then the queue is not full
+  assign bus.full = !found_free;
+
   always_comb begin
     found_free   = 1'b0;
     bus.free_idx = '0;
@@ -43,8 +46,6 @@ module LDQ (
       end
     end
   end
-
-  assign bus.full = !found_free;
 
   integer k;
   always_ff @(posedge clk) begin
@@ -114,7 +115,7 @@ module LDQ (
         entries[bus.wb_idx].issued <= 1'b0;
       end
 
-      if (rat_out.advance_pipeline && rat_out.uop.is_load) begin
+      if (rat_out.valid && rat_out.uop.is_load) begin
         entries[rat_out.ldq_idx].pdst <= rat_out.Pd_new;
         entries[rat_out.ldq_idx].rob_idx <= rat_out.rob_idx;
         entries[rat_out.ldq_idx].PC <= rat_out.uop.pc;

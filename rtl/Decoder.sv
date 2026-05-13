@@ -5,7 +5,6 @@ import riscv_regs_types_pkg::*;
 module Decoder (
     input logic clk,
     input logic reset,
-    input logic advance_pipeline,
     input logic flush,
 
     input decoder_input_t decoder_in,
@@ -13,8 +12,14 @@ module Decoder (
     STQ_if.Decoder_side stq_bus,
     LDQ_if.Decoder_side ldq_bus,
 
+    input logic renamer_fire,
+
     output decoder_output_t decoder_out
 );
+
+  wire decoder_ready = !flush && (!decoder_out.valid || renamer_fire);
+
+  wire decoder_fire = decoder_in.valid && decoder_ready;
 
   decoded_word_t decoded_IR;
   assign decoded_IR = decoder_in.IR;
@@ -28,10 +33,13 @@ module Decoder (
       stq_bus.push <= 1'b0;
       ldq_bus.push <= 1'b0;
     end else begin
-      // decoder_out.valid <= 1'b0;
+      // If the renamer accepts the decoder output, then we can clear the decoder.
+      decoder_out.valid <= decoder_out.valid && !renamer_fire;
+
       stq_bus.push <= 1'b0;
       ldq_bus.push <= 1'b0;
-      if (advance_pipeline) begin
+
+      if (decoder_fire) begin
         decoder_out.uop <= uop_next;
         decoder_out.valid <= uop_next.is_alu ||
                              uop_next.is_load ||

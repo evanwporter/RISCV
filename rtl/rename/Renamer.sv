@@ -14,8 +14,15 @@ module RegisterRenamer (
     input logic reset,
     input decoder_output_t decoder_out,
     input flush_t flush_info,
+    input logic dispatcher_fire,
+    output logic renamer_fire,
     output logic rename_stall,
+
+    /// Output buffer to the dispatcher. We must hold this valid until the dispatcher 
+    /// accepts it, since the dispatcher needs to see the rename information in order
+    /// to know what to push to the ROB and IQs.
     output rat_output_t rat_out,
+
     ReorderBuffer_if.Renamer_Side rob_bus,
     Writeback_if.Renamer_Side wb_bus,
     Commit_if.Renamer_Side commit_bus
@@ -58,9 +65,25 @@ module RegisterRenamer (
   next_free_t next_free;
   assign next_free = get_next_free(free_list);
 
-  wire rename_accept = decoder_out.valid && !rename_stall && !flush_info.valid;
+  /// Means instruction needs a new physical destination, but none is available.
+  wire free_list_stall = uop.has_rd && uop.rd != x0 && !next_free.valid;
 
-  assign rename_stall = decoder_out.valid && uop.has_rd && uop.rd != x0 && !next_free.valid;
+  /// Whether the renamer is ready to accept a new instruction from the decoder. The renamer 
+  /// needs to be ready in order for the decoder to advance and output a new instruction.
+  /// The renamer is ready when:
+  /// 1) We aren't currently flushing (we can't accept new instructions during a flush)
+  /// 2) We have a free physical register to allocate for the destination register (if needed)
+  /// 3) The dispatcher has accepted the instruction OR the output buffer is free
+  wire renamer_ready = !flush_info.valid && !free_list_stall && (!rat_out.valid || dispatcher_fire);
+
+  /// TODO: What happens if dispatcher isn't ready? 
+
+  /// Whether we can accept the output of the decoder this cycle. Accepting the decoder output
+  /// means we will overwrite the current `rat_out` with new rename information taken from the 
+  /// decoder output. 
+  assign renamer_fire = decoder_out.valid && renamer_ready;
+
+  assign rename_stall = decoder_out.valid && !renamer_fire && !dispatcher_fire;
 
   /// Logical Source Register from the instruction
   logical_reg_t rs1, rs2;
@@ -80,14 +103,14 @@ module RegisterRenamer (
   /// Next ROB index for checkpointing (the ROB index for this instruction is 
   /// allocated in the next stage)
   logic [ROB_IDX_WIDTH-1:0] next_rob_idx;
-  assign next_rob_idx = rat_out.advance_pipeline ? rob_bus.next_tail_ptr : rob_bus.tail_ptr;
+  assign next_rob_idx = rat_out.valid ? rob_bus.next_tail_ptr : rob_bus.tail_ptr;
 
   always_comb begin
-    RAT_next       = RAT;
-    ARAT_next      = ARAT;
+    RAT_next = RAT;
+    ARAT_next = ARAT;
     free_list_next = free_list;
     busy_list_next = busy_list;
-    rat_out_next   = '0;
+    rat_out_next = '0;
 
     // ------------------------------------------------------------
     // Flush path
@@ -99,7 +122,7 @@ module RegisterRenamer (
     // that are younger than the flush target, and thus should also be squashed by the flush.
     // This happens in the always_ff block below.
     if (flush_info.valid) begin
-      RAT_next       = checkpoints[flush_info.rob_idx].RAT;
+      RAT_next = checkpoints[flush_info.rob_idx].RAT;
       free_list_next = checkpoints[flush_info.rob_idx].free_list;
       busy_list_next = busy_list;
     end
@@ -143,9 +166,10 @@ module RegisterRenamer (
     // ------------------------------------------------------------
     // On rename, we first set the physical source registers based on the RAT mappings.
     // Then we check to see if it has a destination register that needs to be renamed. 
-    // If so, we allocate a new physical register from the free list,
-    if (rename_accept) begin
-      rat_out_next.advance_pipeline = 1'b1;
+    // If so, we allocate a new physical register from the free list.
+    rat_out_next.valid = rat_out.valid && !dispatcher_fire;
+    if (renamer_fire) begin
+      rat_out_next.valid = 1'b1;
 
       rat_out_next.Ps1 = Ps1;
       rat_out_next.Ps2 = Ps2;
@@ -197,7 +221,7 @@ module RegisterRenamer (
     Pd_old = P0;
     Pd_new = P0;
 
-    if (rename_accept && uop.has_rd && uop.rd != x0) begin
+    if (renamer_fire && uop.has_rd && uop.rd != x0) begin
       Pd_old = RAT[uop.rd];
       Pd_new = next_free.idx;
     end
@@ -221,11 +245,11 @@ module RegisterRenamer (
 
       free_list[P0] <= 1'b0;
     end else begin
-      RAT       <= RAT_next;
-      ARAT      <= ARAT_next;
+      RAT <= RAT_next;
+      ARAT <= ARAT_next;
       free_list <= free_list_next;
       busy_list <= busy_list_next;
-      rat_out   <= rat_out_next;
+      rat_out <= rat_out_next;
     end
   end
 
@@ -277,7 +301,7 @@ module RegisterRenamer (
 
       // If its a branch or jump instruction, then we store a checkpoint so we can return 
       // to this state if the branch is mispredicted. 
-      if (rename_accept && (uop.is_branch || uop.is_jump)) begin
+      if (renamer_fire && (uop.is_branch || uop.is_jump)) begin
         checkpoints[next_rob_idx].valid <= 1'b1;
         checkpoints[next_rob_idx].RAT <= RAT_next;
         checkpoints[next_rob_idx].free_list <= free_list_next;

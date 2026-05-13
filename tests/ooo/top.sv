@@ -177,7 +177,7 @@ module ooo_top_tb (
 
       output int rob_idx, output int stq_idx, output int ldq_idx, output int watch_arch[6],
       output int watch_phys[6], output int watch_ready[6], output int watch_busy[6]);
-    valid = dut.rat_out.advance_pipeline;
+    valid = dut.rat_out.valid;
     pc = dut.rat_out.uop.pc;
 
     rs1_arch = dut.rat_out.uop.rs1;

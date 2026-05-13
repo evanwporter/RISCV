@@ -200,7 +200,7 @@ package riscv_decoder_types_pkg;
 
   /// TODO: move to different package
   typedef struct packed {
-    logic advance_pipeline;
+    logic valid;
 
     physical_reg_t Pd_new;
 
@@ -226,6 +226,7 @@ package riscv_decoder_types_pkg;
   typedef struct packed {
     word_t IR;
     addr_t PC;
+    logic  valid;
   } decoder_input_t;
 
   typedef struct packed {

@@ -54,10 +54,12 @@ module RISCV (
 
   flush_t flush_info;
 
-  logic rename_stall;
-  logic structural_stall;
+  logic renamer_fire;
+  logic dispatcher_fire;
 
-  assign structural_stall =
+  logic rename_stall;
+
+  wire structural_stall =
     decoder_out.valid &&
     (
         rob_bus.full ||
@@ -112,6 +114,8 @@ module RISCV (
     end
   end
 
+  assign decoder_in.valid = advance_pipeline;
+
   assign advance_pipeline =
     instr_valid &&
     !flush_info.valid &&
@@ -122,9 +126,9 @@ module RISCV (
   Decoder decoder (
       .clk(clk),
       .reset(reset),
-      .advance_pipeline(advance_pipeline),
       .flush(flush_info.valid),
       .decoder_in(decoder_in),
+      .renamer_fire(renamer_fire),
       .stq_bus(stq_bus),
       .ldq_bus(ldq_bus),
       .decoder_out(decoder_out)
@@ -137,16 +141,19 @@ module RISCV (
       .decoder_out(decoder_out),
       .flush_info(flush_info),
       .rename_stall(rename_stall),
+      .renamer_fire(renamer_fire),
       .rob_bus(rob_bus),
       .rat_out(rat_out),
-      .wb_bus(wb_bus)
+      .wb_bus(wb_bus),
+      .dispatcher_fire(dispatcher_fire)
   );
 
   Dispatcher dispatcher (
       .alu_iq_bus(alu_iq_bus),
       .mem_iq_bus(mem_iq_bus),
       .rob_bus(rob_bus),
-      .rat_out(rat_out)
+      .rat_out(rat_out),
+      .dispatcher_fire(dispatcher_fire)
   );
 
   IssueQueue alu_iq (

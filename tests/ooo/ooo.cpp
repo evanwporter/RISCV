@@ -24,8 +24,8 @@ namespace fs = std::filesystem;
 
 static constexpr int timeout_cycles = 1000;
 
-static constexpr int ROB_WIDTH_TB = 16;
-static constexpr int IQ_WIDTH_TB = 16;
+static constexpr int ROB_WIDTH_TB = 256;
+static constexpr int IQ_WIDTH_TB = 256;
 
 double sc_time_stamp() {
     return static_cast<double>(g_verilator_time);

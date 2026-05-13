@@ -117,7 +117,9 @@ module IssueQueue (
         end
       end
 
+      // ------------------------------------------------------------
       // Push (dispatch)
+      // ------------------------------------------------------------
       if (bus.push && found_free) begin
         entries[free_idx] <= bus.push_entry;
 

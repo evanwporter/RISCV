@@ -70,10 +70,16 @@ module STQ (
       int survivor_count;
       survivor_count = '0;
 
+      // TODO: flush_instruction on rat_out?
+
       // Invalidate younger entries
       for (int j = 0; j < STQ_WIDTH; j++) begin
         if (entries[j].valid) begin
-          if (is_younger(entries[j].rob_idx, flush_info.rob_idx, rob_bus.head_ptr)) begin
+          if (j == rat_out.stq_idx) begin
+            entries[j] <= '0;
+            $display("Flushing STQ entry %d (rob_idx=%d), PC=%d", j, entries[j].rob_idx,
+                     entries[j].PC);
+          end else if (is_younger(entries[j].rob_idx, flush_info.rob_idx, rob_bus.head_ptr)) begin
             entries[j] <= '0;
           end else begin
             survivor_count = survivor_count + 1;
@@ -120,7 +126,7 @@ module STQ (
       end
 
       // Update entry when its renamed
-      if (rat_out.advance_pipeline && rat_out.uop.is_store) begin
+      if (rat_out.valid && rat_out.uop.is_store) begin
         entries[rat_out.stq_idx].rob_idx <= rat_out.rob_idx;
         entries[rat_out.stq_idx].PC <= rat_out.uop.pc;
       end
