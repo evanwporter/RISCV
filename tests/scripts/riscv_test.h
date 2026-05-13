@@ -47,12 +47,18 @@
 #define RVTEST_CODE_END \
     1 : beq x0, x0, 1b
 
-#define RVTEST_PASS \
-    li x10, -1;     \
+#define RVTEST_PASS              \
+    li x10, -1;                   \
+    la x5, tohost;               \
+    sw x10, 0(x5);               \
     1 : beq x0, x0, 1b
 
-#define RVTEST_FAIL       \
-    addi x10, TESTNUM, 0; \
+#define RVTEST_FAIL              \
+    addi x10, TESTNUM, 0;        \
+    slli x10, x10, 1;            \
+    ori x10, x10, 1;             \
+    la x5, tohost;               \
+    sw x10, 0(x5);               \
     1 : beq x0, x0, 1b
 
 #define RVTEST_DATA_BEGIN \

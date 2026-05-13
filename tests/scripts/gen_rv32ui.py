@@ -3,13 +3,16 @@ from __future__ import annotations
 from pathlib import Path
 import argparse
 import sys
+import os
 
 from ninja_syntax import Writer
 
 
 def win_path(path: Path) -> str:
-    """Return a Ninja-friendly Windows-style path."""
-    return str(path).replace("/", "\\")
+    text = str(path)
+    if os.name == "nt":
+        return text.replace("/", "\\")
+    return text
 
 
 def main() -> int:
@@ -65,6 +68,29 @@ def main() -> int:
         help="RISC-V ABI value.",
     )
 
+    parser.add_argument(
+        "--enable-spike-trace",
+        action="store_true",
+        help="Also generate Ninja targets that run Spike and convert logs to CSV.",
+    )
+    parser.add_argument(
+        "--spike",
+        default="spike",
+        help="Spike executable.",
+    )
+
+    parser.add_argument(
+        "--spike-isa",
+        default="RV32I",
+        help="Spike ISA string.",
+    )
+
+    parser.add_argument(
+        "--spike-priv",
+        default="m",
+        help="Spike privilege mode.",
+    )
+
     args = parser.parse_args()
 
     repo_root: Path = args.repo_root.resolve()
@@ -74,6 +100,7 @@ def main() -> int:
     macros_dir = repo_root / "tests" / "riscv-tests" / "isa" / "macros" / "scalar"
     env_dir = repo_root / "tests" / "scripts"
     bin2hex = repo_root / "scripts" / "bin2hex.py"
+    spike_to_csv = repo_root / "tests" / "scripts" / "spike_log_to_csv.py"
 
     if not rv32ui_dir.exists():
         print(f"error: missing rv32ui directory: {rv32ui_dir}", file=sys.stderr)
@@ -94,6 +121,10 @@ def main() -> int:
 
     if not bin2hex.exists():
         print(f"error: missing bin2hex.py: {bin2hex}", file=sys.stderr)
+        return 1
+
+    if not spike_to_csv.exists():
+        print(f"error: missing spike_log_to_csv.py: {spike_to_csv}", file=sys.stderr)
         return 1
 
     sources = sorted(rv32ui_dir.glob("*.S"))
@@ -119,6 +150,11 @@ def main() -> int:
         n.variable("builddir", win_path(args.builddir))
         n.newline()
 
+        n.variable("spike", args.spike)
+        n.variable("spike_isa", args.spike_isa)
+        n.variable("spike_priv", args.spike_priv)
+        n.newline()
+
         # Use absolute paths so the generated Ninja can be run from tests/asm
         # without depending on current directory assumptions.
         n.variable("repo_root", win_path(repo_root))
@@ -127,6 +163,7 @@ def main() -> int:
         n.variable("macros_dir", win_path(macros_dir))
         n.variable("env_dir", win_path(env_dir))
         n.variable("bin2hex", win_path(bin2hex))
+        n.variable("spike_log_to_csv", win_path(spike_to_csv))
         n.newline()
 
         # Important:
@@ -135,9 +172,11 @@ def main() -> int:
         # - --no-relax avoids linker-generated surprises.
         # - -Ttext=0x0 matches your existing homebrew tests.
         n.variable("march", f"-march={args.march} -mabi={args.mabi}")
+        linker_script = repo_root / "tests" / "riscv-tests" / "env" / "p" / "link.ld"
+        n.variable("linker_script", str(linker_script))
         n.variable(
             "gcc_opts",
-            "-nostdlib -nostartfiles -ffreestanding -Wl,--no-relax -Wl,-Ttext=0x0",
+            "-nostdlib -nostartfiles -ffreestanding -Wl,--no-relax -Wl,-T,$linker_script",
         )
         n.variable(
             "incflags",
@@ -168,6 +207,19 @@ def main() -> int:
             "$python $bin2hex $in $out",
             description="BIN2HEX $out",
         )
+
+        if args.enable_spike_trace:
+            n.rule(
+                "spike_log",
+                "$spike --isa=$spike_isa --priv=$spike_priv -l --log-commits $in 2> $out",
+                description="SPIKE $out",
+            )
+
+            n.rule(
+                "spike_csv",
+                "$python $spike_log_to_csv --log $in --csv $out -f",
+                description="SPIKECSV $out",
+            )
 
         n.newline()
 
@@ -203,6 +255,16 @@ def main() -> int:
             n.build(dump, "dump", elf)
             n.build(binary, "objcopy_bin", elf)
             n.build(hex_file, "bin_to_hex", binary)
+
+            if args.enable_spike_trace:
+                spike_log = win_path(args.builddir / f"{base}.spike.log")
+                spike_csv = win_path(args.builddir / f"{base}.spike.csv")
+
+                n.build(spike_log, "spike_log", elf)
+                n.build(spike_csv, "spike_csv", spike_log)
+
+                defaults.append(spike_csv)
+
             n.newline()
 
             defaults.append(hex_file)
