@@ -2,6 +2,7 @@ import riscv_types_pkg::*;
 import riscv_lsu_types_pkg::*;
 import riscv_regs_types_pkg::*;
 
+// TODO: Better handshakes between memory and the LSU.
 module LSU (
     input logic clk,
     input logic reset,
@@ -49,18 +50,23 @@ module LSU (
       rf_write_bus.addr <= P0;
       rf_write_bus.rob_idx <= '0;
       rf_write_bus.PC <= '0;
+      ldq_bus.wb_valid <= 1'b0;
     end else begin
       rf_write_bus.en <= 1'b0;
       rf_write_bus.data <= '0;
       rf_write_bus.addr <= P0;
       rf_write_bus.rob_idx <= '0;
       rf_write_bus.PC <= '0;
+      ldq_bus.wb_valid <= 1'b0;
       if (ldq_bus.mem_load_valid) begin
         rf_write_bus.en <= 1'b1;
         rf_write_bus.data <= mem_bus.rdata;
         rf_write_bus.addr <= ldq_bus.mem_load_pdst;
         rf_write_bus.rob_idx <= ldq_bus.mem_load_rob_idx;
         rf_write_bus.PC <= ldq_bus.mem_load_PC;
+
+        ldq_bus.wb_valid <= 1'b1;
+        ldq_bus.wb_idx <= ldq_bus.mem_load_idx;
       end
     end
   end

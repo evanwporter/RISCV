@@ -224,7 +224,7 @@ module RISCV (
       .reset(reset),
       .bus(ldq_bus),
       .stq_bus(stq_bus),
-      // .rob_bus(rob_bus),
+      .rob_bus(rob_bus),
       .rat_out(rat_out),
       .flush_info(flush_info)
   );

@@ -133,17 +133,31 @@ interface LDQ_if;
 
   addr_t mem_load_PC;
 
+  logic [LDQ_IDX_WIDTH-1:0] mem_load_idx;
+
+  // ----------------------------
+  // Writeback
+  // ----------------------------
+
+  /// The LSU has written back the load result for this LDQ entry
+  logic wb_valid;
+
+  /// Index of the load entry that has been written back
+  logic [LDQ_IDX_WIDTH-1:0] wb_idx;
+
   modport Decoder_side(input free_idx, output push);
 
   modport LSU_side(
-      input mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC
+      input mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC, mem_load_idx,
+      output wb_valid, wb_idx
   );
 
   modport LDQ_side(
       input push,
       input write_addr, write_addr_idx, write_addr_value,
+      input wb_valid, wb_idx,
       output full,
-      output mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC,
+      output mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC, mem_load_idx,
       output free_idx
   );
 

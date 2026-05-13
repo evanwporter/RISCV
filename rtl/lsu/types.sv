@@ -10,6 +10,8 @@ package riscv_lsu_types_pkg;
     logic  addr_valid;
     addr_t addr;
 
+    logic issued;
+
     physical_reg_t pdst;
 
     /// Load has completed
