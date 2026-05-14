@@ -47,38 +47,38 @@
 #define RVTEST_CODE_END \
     1 : beq x0, x0, 1b
 
-#define RVTEST_PASS              \
-    li x10, -1;                   \
-    la x5, tohost;               \
-    sw x10, 0(x5);               \
+#define RVTEST_PASS \
+    li x10, 1;      \
+    la x5, tohost;  \
+    sw x10, 0(x5);  \
     1 : beq x0, x0, 1b
 
-#define RVTEST_FAIL              \
-    addi x10, TESTNUM, 0;        \
-    slli x10, x10, 1;            \
-    ori x10, x10, 1;             \
-    la x5, tohost;               \
-    sw x10, 0(x5);               \
+#define RVTEST_FAIL       \
+    addi x10, TESTNUM, 0; \
+    slli x10, x10, 1;     \
+    ori x10, x10, 1;      \
+    la x5, tohost;        \
+    sw x10, 0(x5);        \
     1 : beq x0, x0, 1b
 
-#define RVTEST_DATA_BEGIN \
-    .section .tohost,"aw",@progbits; \
-    .align 4;             \
-    .globl tohost;        \
-tohost:                   \
-    .word 0;              \
-    .globl fromhost;      \
-fromhost:                 \
-    .word 0;              \
-    .section .data;       \
-    .align 4;             \
-    .globl begin_signature; \
-begin_signature:
+#define RVTEST_DATA_BEGIN             \
+    .section .tohost, "aw", @progbits; \
+    .align 4;                         \
+    .globl tohost;                    \
+    tohost:                           \
+    .word 0;                          \
+    .globl fromhost;                  \
+    fromhost:                         \
+    .word 0;                          \
+    .section .data;                    \
+    .align 4;                         \
+    .globl begin_signature;           \
+    begin_signature:
 
 #define RVTEST_DATA_END   \
     .align 4;             \
     .globl end_signature; \
-end_signature:
+    end_signature:
 
 // clang-format on
 

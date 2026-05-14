@@ -17,6 +17,7 @@ target_compile_options(libsyscall PRIVATE
 )
 
 add_subdirectory(elf)
+add_subdirectory(csv)
 
 add_library(libutil STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/util.cpp

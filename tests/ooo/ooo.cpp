@@ -8,7 +8,10 @@
 #include "Vooo___024root.h"
 #include "Vooo_ooo_top_tb.h"
 
+#include "commit.hpp"
+#include "common/csv/csv.hpp"
 #include "common/util.hpp"
+
 #include "dpi.hpp"
 #include "snapshot.hpp"
 
@@ -237,6 +240,14 @@ protected:
 
 static std::ofstream g_commit_log;
 static fs::path g_commit_log_path;
+static constexpr std::uint32_t TOHOST_ADDR = 0x80000000u;
+
+//  0 = still running
+//  1 = pass
+// -1 = fail
+static int g_tohost_status = 0;
+
+static std::uint32_t g_tohost_value = 0;
 
 extern "C" unsigned int on_commit(
     unsigned int PC,
@@ -249,21 +260,127 @@ extern "C" unsigned int on_commit(
     if (g_commit_log.is_open()) {
         g_commit_log
             << "commit"
+            << " index=" << std::dec << g_expected_commit_index
             << " pc=0x" << std::hex << PC
             << " ir=0x" << IR
             << " rd=x" << std::dec << rd
             << " rd_data=0x" << std::hex << rd_data
-            << " ls_addr=0x" << std::hex << ls_addr
-            << " st_data=0x" << std::hex << st_data
+            << " ls_addr=0x" << ls_addr
+            << " st_data=0x" << st_data
             << std::dec
             << "\n";
     }
 
+    if (g_commit_compare_failed) {
+        return 0;
+    }
+
+    if (g_expected_commit_index >= g_expected_commits.size()) {
+        std::ostringstream oss;
+        oss << "Unexpected extra commit at index " << g_expected_commit_index
+            << ": pc=0x" << std::hex << PC
+            << " ir=0x" << IR;
+
+        g_commit_compare_failed = true;
+        g_commit_compare_message = oss.str();
+        return 0;
+    }
+
+    const ExpectedCommit& expected = g_expected_commits[g_expected_commit_index];
+
+    auto fail = [&](const std::string& what) {
+        std::ostringstream oss;
+
+        oss << "Commit mismatch at index " << std::dec << g_expected_commit_index
+            << "\n  expected pc=0x" << std::hex << expected.pc
+            << " ir=0x" << expected.instr
+            << "\n  actual   pc=0x" << PC
+            << " ir=0x" << IR
+            << "\n  expected instr: " << expected.instr_str
+            << "\n  mismatch: " << what;
+
+        g_commit_compare_failed = true;
+        g_commit_compare_message = oss.str();
+    };
+
+    if (PC != expected.pc) {
+        std::ostringstream oss;
+        oss << "PC expected 0x" << std::hex << expected.pc
+            << ", got 0x" << PC;
+        fail(oss.str());
+        return 0;
+    }
+
+    if (IR != expected.instr) {
+        std::ostringstream oss;
+        oss << "IR expected 0x" << std::hex << expected.instr
+            << ", got 0x" << IR;
+        fail(oss.str());
+        return 0;
+    }
+
+    if (expected.rd && expected.rd_data) {
+        if (rd != static_cast<unsigned int>(*expected.rd)) {
+            std::ostringstream oss;
+            oss << "rd expected x" << std::dec << *expected.rd
+                << ", got x" << rd;
+            fail(oss.str());
+            return 0;
+        }
+
+        if (rd_data != *expected.rd_data) {
+            std::ostringstream oss;
+            oss << "rd_data expected 0x" << std::hex << *expected.rd_data
+                << ", got 0x" << rd_data;
+            fail(oss.str());
+            return 0;
+        }
+    }
+
+    if (expected.store_addr && expected.store_data) {
+        if (ls_addr != *expected.store_addr) {
+            std::ostringstream oss;
+            oss << "store addr expected 0x" << std::hex << *expected.store_addr
+                << ", got 0x" << ls_addr;
+            fail(oss.str());
+            return 0;
+        }
+
+        if (st_data != *expected.store_data) {
+            std::ostringstream oss;
+            oss << "store data expected 0x" << std::hex << *expected.store_data
+                << ", got 0x" << st_data;
+            fail(oss.str());
+            return 0;
+        }
+    }
+
+    if (ls_addr == TOHOST_ADDR && st_data != 0) {
+        g_tohost_value = st_data;
+
+        if (st_data == 1 || st_data == 0xffffffffu) {
+            g_tohost_status = 1; // pass
+        } else {
+            g_tohost_status = -1; // fail
+        }
+    }
+
+    ++g_expected_commit_index;
     return 0;
 }
 
 TEST_P(RV32UITest, Passes) {
     const fs::path elf_file = GetParam();
+
+    g_tohost_status = 0;
+    g_tohost_value = 0;
+
+    fs::path csv_file = fs::path { TEST_DIR } / "golden" / elf_file.filename().replace_extension(".spike.csv");
+
+    g_expected_commits = load_expected_commits_csv(csv_file);
+    g_expected_commit_index = 0;
+    g_commit_compare_failed = false;
+    g_commit_compare_message.clear();
 
     std::string elf_arg = std::string("+elf=") + elf_file.generic_string();
 
@@ -364,6 +481,29 @@ TEST_P(RV32UITest, Passes) {
 
         const int status = sim.status();
 
+        if (g_commit_compare_failed) {
+            failed = true;
+            failure_reason = g_commit_compare_message;
+            break;
+        }
+
+        if (g_tohost_status == 1) {
+            passed = true;
+            break;
+        }
+
+        if (g_tohost_status == -1) {
+            failed = true;
+
+            std::ostringstream oss;
+            oss << elf_file.filename().stem().string()
+                << " failed via tohost at cycle " << sim.cycle()
+                << ", tohost value = 0x" << std::hex << g_tohost_value;
+
+            failure_reason = oss.str();
+            break;
+        }
+
         if (status == 1) {
             passed = true;
             break;
@@ -401,7 +541,9 @@ TEST_P(RV32UITest, Passes) {
         std::ostringstream oss;
         oss << elf_file.filename().stem().string()
             << " timed out after " << timeout_cycles
-            << " cycles, a0 = " << sim.a0();
+            << " cycles, a0 = " << sim.a0()
+            << ", tohost_status = " << g_tohost_status
+            << ", tohost_value = 0x" << std::hex << g_tohost_value;
 
         failure_reason = oss.str();
     }

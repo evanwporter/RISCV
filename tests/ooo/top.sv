@@ -268,9 +268,9 @@ module ooo_top_tb (
     int a0;
     a0 = dut.rf.regs[dut.renamer.ARAT[10]];
 
-    if (a0 == -1) begin
+    if (a0 == 1) begin
       return 1;  // pass
-    end else if (a0 != 0) begin
+    end else if (a0 > 1) begin
       return -1;  // fail
     end else begin
       return 0;  // still running

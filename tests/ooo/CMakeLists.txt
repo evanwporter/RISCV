@@ -11,7 +11,7 @@ enable_testing()
 find_package(GTest CONFIG REQUIRED)
 target_link_libraries(test_ooo PRIVATE GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
 
-target_link_libraries(test_ooo PRIVATE libutil)
+target_link_libraries(test_ooo PRIVATE libutil csv)
 
 target_include_directories(test_ooo PRIVATE
     ${RV_TESTS_DIR}/
