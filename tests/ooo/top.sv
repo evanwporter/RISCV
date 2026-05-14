@@ -4,6 +4,8 @@ import riscv_constants_pkg::*;
 import riscv_rob_types_pkg::*;
 import riscv_regs_types_pkg::*;
 
+`include "riscv/util.svh"
+
 module MockInstructionMemory (
     input logic clk,
     input logic reset,
@@ -17,62 +19,55 @@ module MockInstructionMemory (
 
   logic [7:0] mem[0:MEM_BYTES-1];
 
-  string hex_file;
-  int unsigned program_words;
+  string elf_file;
+
+  int unsigned memory_base;
+  int unsigned entry_point;
+  int unsigned loaded_size;
+
+  import "DPI-C" function void dpi_load_elf(
+    input string path,
+    input int unsigned memory_size
+  );
+
+  import "DPI-C" function int unsigned dpi_get_elf_memory_base();
+  import "DPI-C" function int unsigned dpi_get_elf_entry_point();
+  import "DPI-C" function int unsigned dpi_get_elf_loaded_size();
+  import "DPI-C" function byte unsigned dpi_get_elf_byte(input int unsigned offset);
 
   initial begin
-    string line;
-    int fd;
-    int code;
-    word_t word;
-    int unsigned addr;
-
-    program_words = 0;
-
-    // Re-open file only to count instruction words.
-    if (!$value$plusargs("hex=%s", hex_file)) begin
-      $fatal(1, "Missing +hex=<file>");
+    if (!$value$plusargs("elf=%s", elf_file)) begin
+      `RV_ASSERT(0, ("Missing +elf=<file>"))
     end
 
-    fd = $fopen(hex_file, "r");
-    if (fd == 0) begin
-      $error(1, "Could not open hex file: %s", hex_file);
+    dpi_load_elf(elf_file, MEM_BYTES);
+
+    memory_base = dpi_get_elf_memory_base();
+    entry_point = dpi_get_elf_entry_point();
+    loaded_size = dpi_get_elf_loaded_size();
+
+    if (loaded_size > MEM_BYTES) begin
+      `RV_ASSERT(0, ("ELF image too large: loaded_size=%0d MEM_BYTES=%0d", loaded_size, MEM_BYTES))
     end
 
-    addr = 0;
-
-    while (!$feof(
-        fd
-    )) begin
-      line = "";
-      code = $fgets(line, fd);
-
-      // Try to parse a hex word from the line.
-      // Lines that do not start with hex data are ignored.
-      if (code != 0 && $sscanf(line, "%h", word) == 1) begin
-        if (addr + 3 >= MEM_BYTES) begin
-          $fatal(1, "Hex file too large for mock memory: %s", hex_file);
-        end
-
-        // RISC-V little-endian word layout
-        mem[addr+0] = word[7:0];
-        mem[addr+1] = word[15:8];
-        mem[addr+2] = word[23:16];
-        mem[addr+3] = word[31:24];
-
-        addr += 4;
-        program_words++;
-      end
+    for (int unsigned i = 0; i < MEM_BYTES; i++) begin
+      mem[i] = dpi_get_elf_byte(i);
     end
 
-    $fclose(fd);
-
-    $display("Loaded %0d words from %s", program_words, hex_file);
+    $display("Loaded ELF: %s", elf_file);
+    $display("  memory_base = %08h", memory_base);
+    $display("  entry_point = %08h", entry_point);
+    $display("  loaded_size = %0d bytes", loaded_size);
   end
 
   always_comb begin
     int unsigned addr;
-    addr = instr_bus.addr;
+
+    if (instr_bus.addr >= memory_base) begin
+      addr = instr_bus.addr - memory_base;
+    end else begin
+      addr = MEM_BYTES;
+    end
 
     instr_valid = (addr <= MEM_BYTES - 4);
 
@@ -85,7 +80,12 @@ module MockInstructionMemory (
 
   always_comb begin
     int unsigned addr;
-    addr = data_bus.addr;
+
+    if (data_bus.addr >= memory_base) begin
+      addr = data_bus.addr - memory_base;
+    end else begin
+      addr = MEM_BYTES;
+    end
 
     if (addr <= MEM_BYTES - 4) begin
       data_bus.rdata = {mem[addr+3], mem[addr+2], mem[addr+1], mem[addr+0]};
@@ -97,20 +97,27 @@ module MockInstructionMemory (
   always_ff @(posedge clk) begin
     if (!reset && data_bus.write_en) begin
       int unsigned addr;
-      addr = data_bus.addr;
 
-      $display("STORE addr=%h wdata=%h", data_bus.addr, data_bus.wdata);
+      if (data_bus.addr >= memory_base) begin
+        addr = data_bus.addr - memory_base;
+      end else begin
+        addr = MEM_BYTES;
+      end
+
+      $display("STORE addr=%08h offset=%08h wdata=%08h", data_bus.addr, addr, data_bus.wdata);
 
       if (addr <= MEM_BYTES - 4) begin
         mem[addr+0] <= data_bus.wdata[7:0];
         mem[addr+1] <= data_bus.wdata[15:8];
         mem[addr+2] <= data_bus.wdata[23:16];
         mem[addr+3] <= data_bus.wdata[31:24];
+      end else begin
+        $display("WARNING: store outside mock memory addr=%08h", data_bus.addr);
       end
     end
   end
 
-endmodule
+endmodule : MockInstructionMemory
 
 module ooo_top_tb (
     input logic clk,
@@ -278,124 +285,75 @@ module ooo_top_tb (
     end
   end
 
-  // import "DPI-C" function int unsigned on_commit(
-  //   output int unsigned PC,
-  //   output int unsigned IR,
-  //   output int value
-  // );
+  import "DPI-C" function int unsigned on_commit(
+    input int unsigned PC,
+    input int unsigned IR,
+    input int unsigned rd,
+    input int unsigned rd_data,
+    input int unsigned ls_addr,
+    input int unsigned st_data
+  );
 
-  // always_ff @(posedge clk) begin
-  //   if (reset) begin
-  //     // Do nothing on reset.
-  //   end else begin
-  //     for (int i = 0; i < COMMIT_WIDTH; i++) begin
-  //       ROB_entry_t entry;
+  always_ff @(posedge clk) begin
+    if (reset) begin
+      // Do nothing on reset.
+    end else begin
+      for (int i = 0; i < COMMIT_WIDTH; i++) begin
+        ROB_entry_t  entry;
 
-  //       int unsigned pc;
-  //       int unsigned ir;
+        int unsigned pc;
+        int unsigned ir;
 
-  //       int unsigned rd;
-  //       int rd_data;
+        int unsigned rd;
+        int unsigned rd_data;
 
-  //       int unsigned rd_wdata;
-  //       bit rd_we;
+        int unsigned ls_addr;
+        int unsigned st_data;
 
-  //       int unsigned rs1;
-  //       int unsigned rs2;
-  //       int imm;
+        entry = dut.commit_bus.committed_rob_entries[i];
 
-  //       int unsigned addr;
-  //       int unsigned store_data;
+        if (entry.valid) begin
+          pc = entry.PC;
+          ir = entry.uop.inst;
 
-  //       bit mem_we;
-  //       bit mem_re;
-  //       int unsigned mem_addr;
-  //       int unsigned mem_wdata;
-  //       int unsigned mem_rdata;
+          rd = x0;
+          rd_data = 0;
 
-  //       int unsigned next_pc;
+          ls_addr = 0;
+          st_data = 0;
 
-  //       entry = dut.rob.entries[dut.commit_bus.committed_rob_entries[i].rob_idx];
+          // ----------------------------
+          // Register destination
+          // ----------------------------
+          if (entry.uop.has_rd && entry.uop.rd != 0) begin
+            rd = 32'(entry.uop.rd);
 
-  //       if (entry.valid) begin
-  //         pc = entry.PC;
-  //         ir = entry.uop.inst;
+            // TODO: Check if the rd_data is actually on the writeback bus
+            // rd_data = dut.rf.regs[dut.renamer.RAT[entry.uop.rd]];
 
-  //         rd = x0;
-  //         rd_data = 0;
+            rd_data = entry.uop.dest_value;
+          end
 
-  //         rd_wdata = 0;
-  //         rd_we = 1'b0;
+          if (entry.uop.is_load) begin
+            $display("Load commit: PC=%0d ld_addr=%0h rd=x%0d rd_data=%0h", entry.PC,
+                     entry.load_addr, entry.uop.rd, entry.uop.dest_value);
+            ls_addr = entry.load_addr;
+          end
 
-  //         mem_we    = 1'b0;
-  //         mem_re    = 1'b0;
-  //         mem_addr  = 0;
-  //         mem_wdata = 0;
-  //         mem_rdata = 0;
+          if (entry.uop.is_store) begin
+            $display("Store commit: PC=%0d st_addr=%0h st_data=%0h", entry.PC, entry.store_addr,
+                     entry.store_data);
+            ls_addr = entry.store_addr;
+            st_data = entry.store_data;
+          end
 
-  //         next_pc   = int unsigned'(entry.PC + 32'd4);
+          void'(on_commit(pc, ir, rd, rd_data, ls_addr, st_data));
 
-  //         // ----------------------------
-  //         // Register destination
-  //         // ----------------------------
-  //         if (entry.uop.has_rd && entry.uop.rd != 0) begin
-  //           rd = int unsigned'(entry.uop.rd);
-
-  //           // TODO: Check if the rd_data is actually on the writeback bus
-  //           rd_data = dut.rf.regs[dut.renamer.RAT[entry.uop.rd]];
-
-  //           if (entry.uop.is_load) begin
-  //             rd_wdata = dut.ldq.entries[entry.ldq_idx];
-  //           end else begin
-  //             rd_wdata = entry.alu_result;
-  //           end
-
-  //         end
-
-  //         // ----------------------------
-  //         // Memory side effects
-  //         // ----------------------------
-  //         if (entry.uop.is_store) begin
-  //           mem_we    = 1'b1;
-  //           mem_addr  = int'(entry.store_addr);
-  //           mem_wdata = int'(entry.store_data);
-  //         end
-
-  //         if (entry.uop.is_load) begin
-  //           mem_re    = 1'b1;
-  //           mem_addr  = int'(entry.load_addr);
-  //           mem_rdata = int'(entry.ld_result);
-  //         end
-
-  //         // ----------------------------
-  //         // Control flow
-  //         // ----------------------------
-  //         if (entry.uop.is_branch || entry.uop.is_jump) begin
-  //           next_pc = int'(entry.actual_next_pc);
-  //         end
-
-  //         if (on_commit(
-  //                 pc,
-  //                 ir,
-  //                 rd
-  //                 // rd_wdata,
-  //                 // rd_we,
-  //                 // mem_we,
-  //                 // mem_re,
-  //                 // mem_addr,
-  //                 // mem_wdata,
-  //                 // mem_rdata,
-  //                 // next_pc
-  //             ) != 0) begin
-
-  //           $display(
-  //               "COMMIT[%0d]: PC=%08h IR=%08h rd_we=%0b rd=x%0d rd_wdata=%08h mem_we=%0b mem_re=%0b mem_addr=%08h mem_wdata=%08h mem_rdata=%08h next_pc=%08h",
-  //               i, pc, ir, rd_we, rd, rd_wdata, mem_we, mem_re, mem_addr, mem_wdata, mem_rdata,
-  //               next_pc);
-  //         end
-  //       end
-  //     end
-  //   end
-  // end
+          $display("COMMIT cycle=%0d slot=%0d pc=%08h ir=%08h rd=x%0d rd_data=%08h rob=%0d", cycle,
+                   i, pc, ir, rd, rd_data, entry.rob_idx);
+        end
+      end
+    end
+  end
 
 endmodule

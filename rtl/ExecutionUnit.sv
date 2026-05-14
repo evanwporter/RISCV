@@ -204,14 +204,17 @@ module ExecutionUnit (
     stq_bus.write_addr = 1'b0;
     stq_bus.write_addr_idx = '0;
     stq_bus.write_addr_value = '0;
+    stq_bus.write_addr_rob_idx = '0;
 
     stq_bus.write_data = 1'b0;
     stq_bus.write_data_idx = '0;
     stq_bus.write_data_value = '0;
+    stq_bus.write_data_rob_idx = '0;
 
     ldq_bus.write_addr = 1'b0;
     ldq_bus.write_addr_idx = '0;
     ldq_bus.write_addr_value = '0;
+    ldq_bus.write_addr_rob_idx = '0;
 
     mem_a_bus.en = 1'b0;
     mem_a_bus.addr = P0;
@@ -232,6 +235,7 @@ module ExecutionUnit (
         stq_bus.write_addr = 1'b1;
         stq_bus.write_addr_idx = mem_iq_bus.issue_entry.stq_idx;
         stq_bus.write_addr_value = agu_bus.addr;
+        stq_bus.write_addr_rob_idx = mem_iq_bus.issue_entry.rob_idx;
 
         // Data path (uopSTD)
         mem_b_bus.en = 1'b1;
@@ -240,10 +244,13 @@ module ExecutionUnit (
         stq_bus.write_data = 1'b1;
         stq_bus.write_data_idx = mem_iq_bus.issue_entry.stq_idx;
         stq_bus.write_data_value = mem_b_bus.data;
+        stq_bus.write_data_rob_idx = mem_iq_bus.issue_entry.rob_idx;
+
       end else if (mem_uop.is_load) begin
         ldq_bus.write_addr = 1'b1;
         ldq_bus.write_addr_idx = mem_iq_bus.issue_entry.ldq_idx;
         ldq_bus.write_addr_value = agu_bus.addr;
+        ldq_bus.write_addr_rob_idx = mem_iq_bus.issue_entry.rob_idx;
       end
     end
   end

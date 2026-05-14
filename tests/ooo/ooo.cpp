@@ -7,7 +7,9 @@
 #include "Vooo__Dpi.h"
 #include "Vooo___024root.h"
 #include "Vooo_ooo_top_tb.h"
+
 #include "common/util.hpp"
+#include "dpi.hpp"
 #include "snapshot.hpp"
 
 #include <cassert>
@@ -233,14 +235,41 @@ protected:
     OooSim sim;
 };
 
-TEST_P(RV32UITest, Passes) {
-    const fs::path hex_file = GetParam();
+static std::ofstream g_commit_log;
+static fs::path g_commit_log_path;
 
-    std::string hex_arg = std::string("+hex=") + hex_file.generic_string();
+extern "C" unsigned int on_commit(
+    unsigned int PC,
+    unsigned int IR,
+    unsigned int rd,
+    unsigned int rd_data,
+    unsigned int ls_addr,
+    unsigned int st_data) {
+
+    if (g_commit_log.is_open()) {
+        g_commit_log
+            << "commit"
+            << " pc=0x" << std::hex << PC
+            << " ir=0x" << IR
+            << " rd=x" << std::dec << rd
+            << " rd_data=0x" << std::hex << rd_data
+            << " ls_addr=0x" << std::hex << ls_addr
+            << " st_data=0x" << std::hex << st_data
+            << std::dec
+            << "\n";
+    }
+
+    return 0;
+}
+
+TEST_P(RV32UITest, Passes) {
+    const fs::path elf_file = GetParam();
+
+    std::string elf_arg = std::string("+elf=") + elf_file.generic_string();
 
     std::vector<std::string> args_storage;
     args_storage.emplace_back("ooo_gtest");
-    args_storage.emplace_back(hex_arg);
+    args_storage.emplace_back(elf_arg);
 
     std::vector<char*> argv;
     for (std::string& arg : args_storage) {
@@ -258,6 +287,9 @@ TEST_P(RV32UITest, Passes) {
     bool failed = false;
     std::string failure_reason;
 
+    g_commit_log.open("test.log", std::ios::out | std::ios::trunc);
+    assert(g_commit_log.is_open() && "Failed to open commit log");
+
     for (int i = 0; i < timeout_cycles; ++i) {
         sim.tick();
 
@@ -265,7 +297,7 @@ TEST_P(RV32UITest, Passes) {
             failed = true;
 
             std::ostringstream oss;
-            oss << hex_file.filename().stem().string()
+            oss << elf_file.filename().stem().string()
                 << " hit SV assertion at cycle " << sim.cycle()
                 << ", a0 = " << sim.a0()
                 << "\n"
@@ -341,7 +373,7 @@ TEST_P(RV32UITest, Passes) {
             failed = true;
 
             std::ostringstream oss;
-            oss << hex_file.filename().stem().string()
+            oss << elf_file.filename().stem().string()
                 << " failed at cycle " << sim.cycle()
                 << ", failing test number = " << sim.a0();
 
@@ -353,7 +385,7 @@ TEST_P(RV32UITest, Passes) {
             failed = true;
 
             std::ostringstream oss;
-            oss << hex_file.filename().stem().string()
+            oss << elf_file.filename().stem().string()
                 << " called $finish before pass/fail status was visible"
                 << ", cycle = " << sim.cycle()
                 << ", a0 = " << sim.a0();
@@ -367,7 +399,7 @@ TEST_P(RV32UITest, Passes) {
         failed = true;
 
         std::ostringstream oss;
-        oss << hex_file.filename().stem().string()
+        oss << elf_file.filename().stem().string()
             << " timed out after " << timeout_cycles
             << " cycles, a0 = " << sim.a0();
 
@@ -377,17 +409,19 @@ TEST_P(RV32UITest, Passes) {
     const std::string stdout_text = testing::internal::GetCapturedStdout();
     const std::string stderr_text = testing::internal::GetCapturedStderr();
 
+    g_commit_log.close();
+
     if (passed) {
-        SUCCEED() << hex_file.filename().stem().string()
+        SUCCEED() << elf_file.filename().stem().string()
                   << " passed at cycle " << sim.cycle();
         return;
     }
 
-    const fs::path log_path = make_failure_log_path(hex_file);
+    const fs::path log_path = make_failure_log_path(elf_file);
 
     write_failure_log(
         log_path,
-        hex_file,
+        elf_file,
         sim.cycle(),
         sim.a0(),
         failure_reason,
@@ -400,27 +434,27 @@ TEST_P(RV32UITest, Passes) {
 
 static const fs::path test_dir = fs::path { TEST_DIR };
 
-static const std::vector<fs::path> custom_hex_files = collect_files_in_directory(
+static const std::vector<fs::path> custom_elf_files = collect_files_in_directory(
     test_dir / "asm" / "custom",
     ".hex",
     {});
 
-static const std::vector<fs::path> riscv_hex_files = collect_files_in_directory(
-    test_dir / "asm" / "riscv",
-    ".hex",
+static const std::vector<fs::path> riscv_elf_files = collect_files_in_directory(
+    fs::path("C:/Users/evanw/RISCV/build/rv32ui"), // test_dir / "asm" / "riscv",
+    ".elf",
     {},
     "rv32ui-");
 
 INSTANTIATE_TEST_SUITE_P(
-    CustomHexFiles,
+    CustomElfFiles,
     RV32UITest,
-    ::testing::ValuesIn(custom_hex_files),
+    ::testing::ValuesIn(custom_elf_files),
     get_test_name);
 
 INSTANTIATE_TEST_SUITE_P(
     RV32UI,
     RV32UITest,
-    ::testing::ValuesIn(riscv_hex_files),
+    ::testing::ValuesIn(riscv_elf_files),
     get_test_name);
 
 int main(int argc, char** argv) {

@@ -25,5 +25,4 @@ struct LoadedElf32 {
 
 LoadedElf32 load_elf_segments(
     const std::string& path,
-    Elf32_Addr memory_base = 0x80000000,
     std::size_t memory_size = 128 * 1024 * 1024);

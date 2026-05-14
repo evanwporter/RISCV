@@ -99,7 +99,8 @@ module RISCV (
 
   always_ff @(posedge clk) begin
     if (reset) begin
-      PC <= '0;
+      // TODO: Set based on ELF file entry point instead of hardcoding.
+      PC <= 32'h8000_1000;
     end else begin
       if (flush_info.valid) begin
         PC <= oldest_branch_info.target;  // redirect
@@ -183,7 +184,9 @@ module RISCV (
       .branch_info(branch_info),
       .oldest_branch_info(oldest_branch_info),
       .wb_bus(wb_bus),
-      .su_bus(su_bus)
+      .su_bus(su_bus),
+      .ldq_bus(ldq_bus),
+      .stq_bus(stq_bus)
   );
 
   ExecutionUnit eu (

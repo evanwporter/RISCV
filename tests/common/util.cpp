@@ -49,11 +49,7 @@ std::string get_test_name(const ::testing::TestParamInfo<std::filesystem::path>&
     return name;
 };
 
-static inline Elf32_Addr segment_load_addr(const Elf32_Phdr& phdr) {
-    return phdr.p_paddr != 0 ? phdr.p_paddr : phdr.p_vaddr;
-}
-
-LoadedElf32 load_elf_segments(const std::string& path, Elf32_Addr memory_base, std::size_t memory_size) {
+LoadedElf32 load_elf_segments(const std::string& path, std::size_t memory_size) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
         throw std::runtime_error("Could not open ELF file: " + path);
@@ -66,6 +62,8 @@ LoadedElf32 load_elf_segments(const std::string& path, Elf32_Addr memory_base, s
     }
 
     std::vector<Elf32_Phdr> phdrs = read_program_headers(file, ehdr);
+
+    Elf32_Addr memory_base = infer_memory_base(phdrs);
 
     std::vector<std::uint8_t> memory(memory_size, 0);
 

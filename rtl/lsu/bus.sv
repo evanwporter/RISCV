@@ -56,6 +56,10 @@ interface STQ_if;
   /// Register value of the store data
   word_t write_data_value;
 
+  logic [ROB_IDX_WIDTH-1:0] write_data_rob_idx;
+
+  logic [ROB_IDX_WIDTH-1:0] write_addr_rob_idx;
+
   // ----------------------------
   // Memory Output (head of STQ)
   // ----------------------------
@@ -91,11 +95,19 @@ interface STQ_if;
       output write_addr,
       output write_addr_idx,
       output write_addr_value,
+      output write_addr_rob_idx,
 
       output write_data,
       output write_data_idx,
-      output write_data_value
+      output write_data_value,
+      output write_data_rob_idx
   );
+
+  modport ROB_Side(
+      input write_addr, write_addr_value, write_data, write_data_value,
+      input write_addr_rob_idx, write_data_rob_idx
+  );
+
 endinterface : STQ_if
 
 interface LDQ_if;
@@ -116,6 +128,7 @@ interface LDQ_if;
   logic write_addr;
   logic [LDQ_IDX_WIDTH-1:0] write_addr_idx;
   addr_t write_addr_value;
+  logic [ROB_IDX_WIDTH-1:0] write_addr_rob_idx;
 
   // ----------------------------
   // Memory Output
@@ -161,6 +174,13 @@ interface LDQ_if;
       output free_idx
   );
 
-  modport Execution_side(output write_addr, output write_addr_idx, output write_addr_value);
+  modport Execution_side(
+      output write_addr,
+      output write_addr_idx,
+      output write_addr_value,
+      output write_addr_rob_idx
+  );
+
+  modport ROB_Side(input write_addr, write_addr_value, write_addr_rob_idx);
 
 endinterface : LDQ_if

@@ -18,6 +18,9 @@ module ReorderBuffer (
     Commit_if.ROB_Side commit_bus,
     Writeback_if.Renamer_Side wb_bus,
 
+    LDQ_if.ROB_Side ldq_bus,
+    STQ_if.ROB_Side stq_bus,
+
     Syscall_if.ReorderBuffer_Side su_bus
 );
 
@@ -209,6 +212,23 @@ module ReorderBuffer (
             ("Invalid destination expected p%0d, recieved p%0d", wb_bus.mem_writeback.pdst, entry.uop.pdst))
         entries[wb_bus.mem_writeback.rob_idx].uop.dest_value <= wb_bus.mem_writeback.data;
         entries[wb_bus.mem_writeback.rob_idx].issued <= 1'b1;
+      end
+
+      if (ldq_bus.write_addr) begin
+        entries[ldq_bus.write_addr_rob_idx].load_addr_valid <= 1'b1;
+        entries[ldq_bus.write_addr_rob_idx].load_addr <= ldq_bus.write_addr_value;
+        $display("LDQ write addr: ROB idx=%0d addr=%0h", ldq_bus.write_addr_rob_idx,
+                 ldq_bus.write_addr_value);
+      end
+
+      if (stq_bus.write_addr) begin
+        entries[stq_bus.write_addr_rob_idx].store_addr_valid <= 1'b1;
+        entries[stq_bus.write_addr_rob_idx].store_addr <= stq_bus.write_addr_value;
+      end
+
+      if (stq_bus.write_data) begin
+        entries[stq_bus.write_data_rob_idx].store_data_valid <= 1'b1;
+        entries[stq_bus.write_data_rob_idx].store_data <= stq_bus.write_data_value;
       end
 
     end

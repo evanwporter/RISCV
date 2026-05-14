@@ -40,6 +40,15 @@ package riscv_rob_types_pkg;
 
     uop_t uop;
 
+    logic  load_addr_valid;
+    addr_t load_addr;
+
+    logic  store_addr_valid;
+    addr_t store_addr;
+
+    logic  store_data_valid;
+    word_t store_data;
+
   } ROB_entry_t;
 
   typedef struct packed {
