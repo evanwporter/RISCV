@@ -234,6 +234,7 @@ module RISCV (
       .reset(reset),
       .bus(ldq_bus),
       .stq_bus(stq_bus),
+      .commit_bus(commit_bus),
       .rob_bus(rob_bus),
       .rat_out(rat_out),
       .flush_info(flush_info)
@@ -242,6 +243,7 @@ module RISCV (
   LSU lsu (
       .clk(clk),
       .reset(reset),
+      .flush_info(flush_info),
       .stq_bus(stq_bus),
       .rf_write_bus(lsu_write_bus),
       .ldq_bus(ldq_bus),

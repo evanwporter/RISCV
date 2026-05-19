@@ -14,7 +14,8 @@ module LDQ (
 
     LDQ_if.LDQ_side bus,
     STQ_if.STQ_side stq_bus,
-    ReorderBuffer_if.IQ_Side rob_bus,
+    ReorderBuffer_if.LDQ_Side rob_bus,
+    Commit_if.LDQ_Side commit_bus,
     input rat_output_t rat_out,
     input flush_t flush_info
 );
@@ -96,7 +97,8 @@ module LDQ (
 
       // Find entries ready to be loaded
       bus.mem_load_valid <= 1'b0;
-      bus.mem_load_addr  <= '0;
+      bus.mem_load_addr <= '0;
+      rob_bus.LDR_executed_op <= '0;
       for (int i = 0; i < LDQ_WIDTH; i++) begin
         if (entries[i].valid && entries[i].st_dep_mask == '0 && entries[i].addr_valid && !entries[i].issued) begin
           bus.mem_load_valid <= 1'b1;

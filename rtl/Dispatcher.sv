@@ -46,17 +46,20 @@ module Dispatcher (
       rob_bus.push_entry.new_dest = rat_out.Pd_new;
       rob_bus.push_entry.stq_idx_valid = uop.is_store;
       rob_bus.push_entry.stq_idx = rat_out.stq_idx;
+      rob_bus.push_entry.ldq_idx = rat_out.ldq_idx;
       rob_bus.push_entry.PC = uop.pc;
       rob_bus.push_entry.is_branch = uop.is_branch || uop.is_jump;
       rob_bus.push_entry.rd = uop.rd;
       rob_bus.push_entry.has_rd = uop.has_rd;
       rob_bus.push_entry.rob_idx = rob_bus.tail_ptr;
       rob_bus.push_entry.uop = uop;
+      rob_bus.push_entry.written_back = 0;
 
       rob_bus.push_entry.issued = 0;
 
-      if (!uop.has_rd) begin
-        rob_bus.push_entry.issued = 1;
+      if (!uop.has_rd || uop.rd == x0) begin
+        rob_bus.push_entry.issued       = 1'b1;
+        rob_bus.push_entry.written_back = 1'b1;
       end
 
       if (uop.is_ecall) begin

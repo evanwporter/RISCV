@@ -1,11 +1,14 @@
 import riscv_types_pkg::*;
 import riscv_lsu_types_pkg::*;
 import riscv_regs_types_pkg::*;
+import riscv_constants_pkg::*;
 
 // TODO: Better handshakes between memory and the LSU.
 module LSU (
     input logic clk,
     input logic reset,
+
+    input flush_t flush_info,
 
     STQ_if.LSU_side stq_bus,
     LDQ_if.LSU_side ldq_bus,
@@ -43,6 +46,7 @@ module LSU (
     end
   end
 
+  // Load Register
   always_ff @(posedge clk) begin
     if (reset) begin
       rf_write_bus.en <= 1'b0;
@@ -58,6 +62,7 @@ module LSU (
       rf_write_bus.rob_idx <= '0;
       rf_write_bus.PC <= '0;
       ldq_bus.wb_valid <= 1'b0;
+
       if (ldq_bus.mem_load_valid) begin
         rf_write_bus.en <= 1'b1;
         rf_write_bus.data <= mem_bus.rdata;

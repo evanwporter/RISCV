@@ -81,18 +81,22 @@ module MockInstructionMemory (
   always_comb begin
     int unsigned addr;
 
+    data_bus.rdata = 32'd0;
+
     if (data_bus.addr >= memory_base) begin
       addr = data_bus.addr - memory_base;
     end else begin
       addr = MEM_BYTES;
     end
 
-    if (addr <= MEM_BYTES - 4) begin
-      data_bus.rdata = {mem[addr+3], mem[addr+2], mem[addr+1], mem[addr+0]};
+    if (data_bus.read_en) begin
+      if (addr <= MEM_BYTES - 4) begin
+        data_bus.rdata = {mem[addr+3], mem[addr+2], mem[addr+1], mem[addr+0]};
         $display("LOAD time =%0d addr=%08h offset=%08h rdata=%08h", $time, data_bus.addr, addr,
                  data_bus.rdata);
-    end else begin
-      data_bus.rdata = 32'hx;
+      end else begin
+        data_bus.rdata = 32'd0;
+      end
     end
   end
 

@@ -37,6 +37,7 @@ module STQ (
   assign bus.mem_store_valid = head_can_fire;
   assign bus.mem_store_addr  = entries[bus.head_idx].addr;
   assign bus.mem_store_data  = entries[bus.head_idx].data;
+  assign bus.mem_store_idx   = bus.head_idx;
 
   genvar i;
   generate
