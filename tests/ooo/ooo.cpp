@@ -198,6 +198,10 @@ public:
         return context_->gotFinish();
     }
 
+    uint64_t time() const {
+        return context_->time();
+    }
+
     CycleSnapshot get_cycle_snapshot() const {
         const auto snap = top_->ooo_top_tb->get_snapshot();
         return CycleSnapshot {
@@ -450,13 +454,13 @@ TEST_P(RV32UITest, Passes) {
         get_alu_iq_entries(AIQ.PC, AIQ.valid, AIQ.prs1_ready, AIQ.prs2_ready);
         get_mem_iq_entries(MIQ.PC, MIQ.valid, MIQ.prs1_ready, MIQ.prs2_ready);
 
-        printf("Cycle %d: F = %d, Dc = %d, R = %d, Dp = %d, I = %d, E = %d\n", sim.cycle() + 1, snapshot.Fetched_PC, snapshot.Decoded_PC, snapshot.Renamed_PC, snapshot.Dispatched_PC, snapshot.Issued_PC, snapshot.Executed_PC);
+        printf("[%d] Cycle %d: F = %d, Dc = %d, R = %d, Dp = %d, I = %d, E = %d\n", sim.time(), sim.cycle() + 1, snapshot.Fetched_PC, snapshot.Decoded_PC, snapshot.Renamed_PC, snapshot.Dispatched_PC, snapshot.Issued_PC, snapshot.Executed_PC);
 
         // print ROB
         printf("  ROB: ");
         for (int i = 0; i < ROB_WIDTH_TB; i++) {
             if (ROB.valid[i]) {
-                printf("[%d:%d:%s] ", i, ROB.PC[i], ROB.busy[i] ? "1" : "0");
+                printf("[%d:0x%08x:%s] ", i, static_cast<uint32_t>(ROB.PC[i]), ROB.busy[i] ? "1" : "0");
             }
         }
         printf("\n");
@@ -465,7 +469,7 @@ TEST_P(RV32UITest, Passes) {
         printf("  AIQ: ");
         for (int i = 0; i < IQ_WIDTH_TB; i++) {
             if (AIQ.valid[i]) {
-                printf("[%d:%d,%s,%s] ", i, AIQ.PC[i], AIQ.prs1_ready[i] ? "1" : "0", AIQ.prs2_ready[i] ? "1" : "0");
+                printf("[%d:0x%08x,%s,%s] ", i, static_cast<uint32_t>(AIQ.PC[i]), AIQ.prs1_ready[i] ? "1" : "0", AIQ.prs2_ready[i] ? "1" : "0");
             }
         }
         printf("\n");
@@ -474,7 +478,7 @@ TEST_P(RV32UITest, Passes) {
         printf("  MIQ: ");
         for (int i = 0; i < IQ_WIDTH_TB; i++) {
             if (MIQ.valid[i]) {
-                printf("[%d:%d,%s,%s] ", i, MIQ.PC[i], MIQ.prs1_ready[i] ? "1" : "0", MIQ.prs2_ready[i] ? "1" : "0");
+                printf("[%d:0x%08x,%s,%s] ", i, static_cast<uint32_t>(MIQ.PC[i]), MIQ.prs1_ready[i] ? "1" : "0", MIQ.prs2_ready[i] ? "1" : "0");
             }
         }
         printf("\n");

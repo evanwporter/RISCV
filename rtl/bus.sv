@@ -40,6 +40,8 @@ interface Commit_if;
 
   modport STQ_Side(input committed_rob_entries);
 
+  modport LDQ_Side(input committed_rob_entries);
+
   modport Syscall_Side(input committed_rob_entries);
 
 endinterface : Commit_if
@@ -63,6 +65,8 @@ interface ReorderBuffer_if;
 
   executed_op_t STR_executed_op;
 
+  executed_op_t LDR_executed_op;
+
   /// Writeback validation query from execution/writeback path
   /// During a flush, the entry being executed may be invalidated from the ROB. 
   /// So we need to check during writeback whether the ROB entry being written back is 
@@ -83,7 +87,7 @@ interface ReorderBuffer_if;
   modport ROB_Side(
       input push,
       input push_entry,
-      input ALU_executed_op, STR_executed_op,
+      input ALU_executed_op, STR_executed_op, LDR_executed_op,
       output full,
       output head_entry,
       output head_ptr,
@@ -121,6 +125,8 @@ interface ReorderBuffer_if;
   modport Commit_Side(input head_entry, input head_ptr, input tail_ptr);
 
   modport IQ_Side(input head_ptr);
+
+  modport LDQ_Side(input head_ptr, output LDR_executed_op);
 
 endinterface : ReorderBuffer_if
 

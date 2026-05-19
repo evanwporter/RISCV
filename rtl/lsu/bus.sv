@@ -73,6 +73,8 @@ interface STQ_if;
   /// Data to send to memory for the head store
   word_t mem_store_data;
 
+  logic [STQ_IDX_WIDTH-1:0] mem_store_idx;
+
   modport Decoder_side(input tail_idx, output push, output push_rob_idx);
 
   modport STQ_side(
@@ -84,10 +86,13 @@ interface STQ_if;
       output entries,
       output valid_mask,
       output tail_idx, head_idx,
-      output mem_store_valid, mem_store_addr, mem_store_data
+      output mem_store_valid, mem_store_addr, mem_store_data, mem_store_idx
   );
 
-  modport LSU_side(input mem_store_valid, mem_store_addr, mem_store_data, output pop);
+  modport LSU_side(
+      input mem_store_valid, mem_store_addr, mem_store_data, mem_store_idx,
+      output pop
+  );
 
   modport LDQ_side(input entries, input pop, head_idx);
 
@@ -160,8 +165,17 @@ interface LDQ_if;
 
   modport Decoder_side(input free_idx, output push);
 
+  // ----------------------------
+  // In-Flight Store
+  // ----------------------------
+
+  logic store_write_inflight;
+
+  logic [STQ_IDX_WIDTH-1:0] store_write_inflight_idx;
+
   modport LSU_side(
       input mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC, mem_load_idx,
+      output store_write_inflight, store_write_inflight_idx,
       output wb_valid, wb_idx
   );
 
@@ -169,6 +183,7 @@ interface LDQ_if;
       input push,
       input write_addr, write_addr_idx, write_addr_value,
       input wb_valid, wb_idx,
+      input store_write_inflight, store_write_inflight_idx,
       output full,
       output mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC, mem_load_idx,
       output free_idx

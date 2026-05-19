@@ -14,6 +14,8 @@ package riscv_lsu_types_pkg;
 
     physical_reg_t pdst;
 
+    logic committed;
+
     /// Load has completed
     logic executed;
 

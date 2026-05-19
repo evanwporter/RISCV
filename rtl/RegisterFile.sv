@@ -82,6 +82,8 @@ module RegisterFile (
       wb_bus.mem_writeback.valid <= 0;
       wb_bus.mem_writeback.pdst  <= P0;
       if (mem_write_bus.en) begin
+        $display("Mem Writing back to memory, PC=%0h, ROB=%0d, data=%0h", mem_write_bus.PC,
+                 mem_write_bus.rob_idx, mem_write_bus.data);
         wb_bus.mem_writeback.valid <= 1;
         wb_bus.mem_writeback.pdst <= mem_write_bus.addr;
         wb_bus.mem_writeback.PC <= mem_write_bus.PC;

@@ -24,6 +24,8 @@ package riscv_rob_types_pkg;
     /// if its a store.
     logic [STQ_IDX_WIDTH-1:0] stq_idx;
 
+    logic [LDQ_IDX_WIDTH-1:0] ldq_idx;
+
     logic [ROB_IDX_WIDTH-1:0] rob_idx;
 
     addr_t PC;
@@ -49,6 +51,7 @@ package riscv_rob_types_pkg;
     logic  store_data_valid;
     word_t store_data;
 
+    logic written_back;
   } ROB_entry_t;
 
   typedef struct packed {

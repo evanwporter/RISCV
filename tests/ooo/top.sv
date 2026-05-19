@@ -89,6 +89,8 @@ module MockInstructionMemory (
 
     if (addr <= MEM_BYTES - 4) begin
       data_bus.rdata = {mem[addr+3], mem[addr+2], mem[addr+1], mem[addr+0]};
+        $display("LOAD time =%0d addr=%08h offset=%08h rdata=%08h", $time, data_bus.addr, addr,
+                 data_bus.rdata);
     end else begin
       data_bus.rdata = 32'hx;
     end
@@ -104,7 +106,8 @@ module MockInstructionMemory (
         addr = MEM_BYTES;
       end
 
-      $display("STORE addr=%08h offset=%08h wdata=%08h", data_bus.addr, addr, data_bus.wdata);
+      $display("STORE time =%0d addr=%08h offset=%08h wdata=%08h", $time, data_bus.addr, addr,
+               data_bus.wdata);
 
       if (addr <= MEM_BYTES - 4) begin
         mem[addr+0] <= data_bus.wdata[7:0];
