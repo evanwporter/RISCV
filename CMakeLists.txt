@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.28)
 
 project(RISCV LANGUAGES CXX)
 enable_testing()
@@ -15,27 +15,31 @@ set(RV_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/rtl)
 add_library(rv_rtl INTERFACE)
 
 function(rv_add_rtl)
-    cmake_parse_arguments(ARG "" "" "PACKAGES;INTERFACES;SOURCES;TESTBENCHES" ${ARGN})
+  cmake_parse_arguments(ARG
+    ""
+    ""
+    "PACKAGES;INTERFACES;SOURCES;TESTBENCHES"
+    ${ARGN})
 
-    if(ARG_PACKAGES)
-        set_property(TARGET rv_rtl APPEND PROPERTY
-            INTERFACE_RV_PACKAGES ${ARG_PACKAGES})
-    endif()
+  if(ARG_PACKAGES)
+    set_property(TARGET rv_rtl APPEND PROPERTY
+          INTERFACE_RV_PACKAGES ${ARG_PACKAGES})
+  endif()
 
-    if(ARG_INTERFACES)
-        set_property(TARGET rv_rtl APPEND PROPERTY
-            INTERFACE_RV_INTERFACES ${ARG_INTERFACES})
-    endif()
+  if(ARG_INTERFACES)
+    set_property(TARGET rv_rtl APPEND PROPERTY
+          INTERFACE_RV_INTERFACES ${ARG_INTERFACES})
+  endif()
 
-    if(ARG_SOURCES)
-        set_property(TARGET rv_rtl APPEND PROPERTY
-            INTERFACE_RV_SOURCES ${ARG_SOURCES})
-    endif()
+  if(ARG_SOURCES)
+    set_property(TARGET rv_rtl APPEND PROPERTY
+          INTERFACE_RV_SOURCES ${ARG_SOURCES})
+  endif()
 
-    if(ARG_TESTBENCHES)
-        set_property(TARGET rv_rtl APPEND PROPERTY
-            INTERFACE_RV_TESTBENCHES ${ARG_TESTBENCHES})
-    endif()
+  if(ARG_TESTBENCHES)
+    set_property(TARGET rv_rtl APPEND PROPERTY
+          INTERFACE_RV_TESTBENCHES ${ARG_TESTBENCHES})
+  endif()
 endfunction()
 
 set(RV_INCLUDE_DIR

@@ -16,10 +16,13 @@
 #include "snapshot.hpp"
 
 #include <cassert>
+#include <cctype>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -32,15 +35,18 @@ static constexpr int timeout_cycles = 1000;
 static constexpr int ROB_WIDTH_TB = 256;
 static constexpr int IQ_WIDTH_TB = 256;
 
+static const fs::path test_dir = fs::path { TEST_DIR };
+static const fs::path rv32ui_dir = fs::path { "/home/evanw/RISCV/build/rv32ui" };
+
 double sc_time_stamp() {
     return static_cast<double>(g_verilator_time);
 }
 
-static fs::path make_failure_log_path(const fs::path& hex_file) {
+static fs::path make_failure_log_path(const fs::path& elf_file) {
     fs::path dir = fs::path { "ooo_test_logs" };
     fs::create_directories(dir);
 
-    std::string name = hex_file.filename().stem().string();
+    std::string name = elf_file.filename().stem().string();
     for (char& c : name) {
         if (!std::isalnum(static_cast<unsigned char>(c))) {
             c = '_';
@@ -72,7 +78,7 @@ extern "C" void rv_assert_fail(const char* file, int line, const char* msg) {
 
 static void write_failure_log(
     const fs::path& log_path,
-    const fs::path& hex_file,
+    const fs::path& elf_file,
     int cycle,
     int a0,
     const std::string& reason,
@@ -81,7 +87,7 @@ static void write_failure_log(
 
     std::ofstream out(log_path, std::ios::out | std::ios::trunc);
 
-    out << "Test: " << hex_file.string() << "\n";
+    out << "Test: " << elf_file.string() << "\n";
     out << "Reason: " << reason << "\n";
     out << "Cycle: " << cycle << "\n";
     out << "a0: " << a0 << "\n";
@@ -233,15 +239,6 @@ private:
     bool trace_ = false;
 };
 
-class RV32UITest : public ::testing::TestWithParam<fs::path> {
-protected:
-    void TearDown() override {
-        sim.destroy();
-    }
-
-    OooSim sim;
-};
-
 static std::ofstream g_commit_log;
 static fs::path g_commit_log_path;
 static constexpr std::uint32_t TOHOST_ADDR = 0x80000000u;
@@ -373,13 +370,16 @@ extern "C" unsigned int on_commit(
     return 0;
 }
 
-TEST_P(RV32UITest, Passes) {
-    const fs::path elf_file = GetParam();
+static void run_ooo_test(const fs::path& elf_file) {
+    OooSim sim;
 
     g_tohost_status = 0;
     g_tohost_value = 0;
 
-    fs::path csv_file = fs::path { TEST_DIR } / "golden" / elf_file.filename().replace_extension(".spike.csv");
+    fs::path csv_name = elf_file.filename();
+    csv_name.replace_extension(".spike.csv");
+
+    fs::path csv_file = test_dir / "golden" / csv_name;
 
     g_expected_commits = load_expected_commits_csv(csv_file);
     g_expected_commit_index = 0;
@@ -454,31 +454,51 @@ TEST_P(RV32UITest, Passes) {
         get_alu_iq_entries(AIQ.PC, AIQ.valid, AIQ.prs1_ready, AIQ.prs2_ready);
         get_mem_iq_entries(MIQ.PC, MIQ.valid, MIQ.prs1_ready, MIQ.prs2_ready);
 
-        printf("[%d] Cycle %d: F = %d, Dc = %d, R = %d, Dp = %d, I = %d, E = %d\n", sim.time(), sim.cycle() + 1, snapshot.Fetched_PC, snapshot.Decoded_PC, snapshot.Renamed_PC, snapshot.Dispatched_PC, snapshot.Issued_PC, snapshot.Executed_PC);
+        printf(
+            "[%lu] Cycle %d: F = %d, Dc = %d, R = %d, Dp = %d, I = %d, E = %d\n",
+            static_cast<unsigned long>(sim.time()),
+            sim.cycle() + 1,
+            snapshot.Fetched_PC,
+            snapshot.Decoded_PC,
+            snapshot.Renamed_PC,
+            snapshot.Dispatched_PC,
+            snapshot.Issued_PC,
+            snapshot.Executed_PC);
 
-        // print ROB
         printf("  ROB: ");
-        for (int i = 0; i < ROB_WIDTH_TB; i++) {
-            if (ROB.valid[i]) {
-                printf("[%d:0x%08x:%s] ", i, static_cast<uint32_t>(ROB.PC[i]), ROB.busy[i] ? "1" : "0");
+        for (int j = 0; j < ROB_WIDTH_TB; j++) {
+            if (ROB.valid[j]) {
+                printf(
+                    "[%d:0x%08x:%s] ",
+                    j,
+                    static_cast<uint32_t>(ROB.PC[j]),
+                    ROB.busy[j] ? "1" : "0");
             }
         }
         printf("\n");
 
-        // print AIQ
         printf("  AIQ: ");
-        for (int i = 0; i < IQ_WIDTH_TB; i++) {
-            if (AIQ.valid[i]) {
-                printf("[%d:0x%08x,%s,%s] ", i, static_cast<uint32_t>(AIQ.PC[i]), AIQ.prs1_ready[i] ? "1" : "0", AIQ.prs2_ready[i] ? "1" : "0");
+        for (int j = 0; j < IQ_WIDTH_TB; j++) {
+            if (AIQ.valid[j]) {
+                printf(
+                    "[%d:0x%08x,%s,%s] ",
+                    j,
+                    static_cast<uint32_t>(AIQ.PC[j]),
+                    AIQ.prs1_ready[j] ? "1" : "0",
+                    AIQ.prs2_ready[j] ? "1" : "0");
             }
         }
         printf("\n");
 
-        // print MIQ
         printf("  MIQ: ");
-        for (int i = 0; i < IQ_WIDTH_TB; i++) {
-            if (MIQ.valid[i]) {
-                printf("[%d:0x%08x,%s,%s] ", i, static_cast<uint32_t>(MIQ.PC[i]), MIQ.prs1_ready[i] ? "1" : "0", MIQ.prs2_ready[i] ? "1" : "0");
+        for (int j = 0; j < IQ_WIDTH_TB; j++) {
+            if (MIQ.valid[j]) {
+                printf(
+                    "[%d:0x%08x,%s,%s] ",
+                    j,
+                    static_cast<uint32_t>(MIQ.PC[j]),
+                    MIQ.prs1_ready[j] ? "1" : "0",
+                    MIQ.prs2_ready[j] ? "1" : "0");
             }
         }
         printf("\n");
@@ -578,30 +598,169 @@ TEST_P(RV32UITest, Passes) {
            << "\nLog written to: " << fs::absolute(log_path).string();
 }
 
-static const fs::path test_dir = fs::path { TEST_DIR };
+TEST(RV32UI, add) {
+    run_ooo_test(rv32ui_dir / "rv32ui-add.elf");
+}
 
-static const std::vector<fs::path> custom_elf_files = collect_files_in_directory(
-    test_dir / "asm" / "custom",
-    ".hex",
-    {});
+TEST(RV32UI, addi) {
+    run_ooo_test(rv32ui_dir / "rv32ui-addi.elf");
+}
 
-static const std::vector<fs::path> riscv_elf_files = collect_files_in_directory(
-    fs::path("C:/Users/evanw/RISCV/build/rv32ui"), // test_dir / "asm" / "riscv",
-    ".elf",
-    {},
-    "rv32ui-");
+TEST(RV32UI, and) {
+    run_ooo_test(rv32ui_dir / "rv32ui-and.elf");
+}
 
-INSTANTIATE_TEST_SUITE_P(
-    CustomElfFiles,
-    RV32UITest,
-    ::testing::ValuesIn(custom_elf_files),
-    get_test_name);
+TEST(RV32UI, andi) {
+    run_ooo_test(rv32ui_dir / "rv32ui-andi.elf");
+}
 
-INSTANTIATE_TEST_SUITE_P(
-    RV32UI,
-    RV32UITest,
-    ::testing::ValuesIn(riscv_elf_files),
-    get_test_name);
+TEST(RV32UI, auipc) {
+    run_ooo_test(rv32ui_dir / "rv32ui-auipc.elf");
+}
+
+TEST(RV32UI, beq) {
+    run_ooo_test(rv32ui_dir / "rv32ui-beq.elf");
+}
+
+TEST(RV32UI, bge) {
+    run_ooo_test(rv32ui_dir / "rv32ui-bge.elf");
+}
+
+TEST(RV32UI, bgeu) {
+    run_ooo_test(rv32ui_dir / "rv32ui-bgeu.elf");
+}
+
+TEST(RV32UI, blt) {
+    run_ooo_test(rv32ui_dir / "rv32ui-blt.elf");
+}
+
+TEST(RV32UI, bltu) {
+    run_ooo_test(rv32ui_dir / "rv32ui-bltu.elf");
+}
+
+TEST(RV32UI, bne) {
+    run_ooo_test(rv32ui_dir / "rv32ui-bne.elf");
+}
+
+TEST(RV32UI, jal) {
+    run_ooo_test(rv32ui_dir / "rv32ui-jal.elf");
+}
+
+TEST(RV32UI, jalr) {
+    run_ooo_test(rv32ui_dir / "rv32ui-jalr.elf");
+}
+
+TEST(RV32UI, lb) {
+    run_ooo_test(rv32ui_dir / "rv32ui-lb.elf");
+}
+
+TEST(RV32UI, lbu) {
+    run_ooo_test(rv32ui_dir / "rv32ui-lbu.elf");
+}
+
+TEST(RV32UI, ld_st) {
+    run_ooo_test(rv32ui_dir / "rv32ui-ld_st.elf");
+}
+
+TEST(RV32UI, lh) {
+    run_ooo_test(rv32ui_dir / "rv32ui-lh.elf");
+}
+
+TEST(RV32UI, lhu) {
+    run_ooo_test(rv32ui_dir / "rv32ui-lhu.elf");
+}
+
+TEST(RV32UI, lui) {
+    run_ooo_test(rv32ui_dir / "rv32ui-lui.elf");
+}
+
+TEST(RV32UI, lw) {
+    run_ooo_test(rv32ui_dir / "rv32ui-lw.elf");
+}
+
+TEST(RV32UI, ma_data) {
+    run_ooo_test(rv32ui_dir / "rv32ui-ma_data.elf");
+}
+
+TEST(RV32UI, or) {
+    run_ooo_test(rv32ui_dir / "rv32ui-or.elf");
+}
+
+TEST(RV32UI, ori) {
+    run_ooo_test(rv32ui_dir / "rv32ui-ori.elf");
+}
+
+TEST(RV32UI, sb) {
+    run_ooo_test(rv32ui_dir / "rv32ui-sb.elf");
+}
+
+TEST(RV32UI, sh) {
+    run_ooo_test(rv32ui_dir / "rv32ui-sh.elf");
+}
+
+TEST(RV32UI, simple) {
+    run_ooo_test(rv32ui_dir / "rv32ui-simple.elf");
+}
+
+TEST(RV32UI, sll) {
+    run_ooo_test(rv32ui_dir / "rv32ui-sll.elf");
+}
+
+TEST(RV32UI, slli) {
+    run_ooo_test(rv32ui_dir / "rv32ui-slli.elf");
+}
+
+TEST(RV32UI, slt) {
+    run_ooo_test(rv32ui_dir / "rv32ui-slt.elf");
+}
+
+TEST(RV32UI, slti) {
+    run_ooo_test(rv32ui_dir / "rv32ui-slti.elf");
+}
+
+TEST(RV32UI, sltiu) {
+    run_ooo_test(rv32ui_dir / "rv32ui-sltiu.elf");
+}
+
+TEST(RV32UI, sltu) {
+    run_ooo_test(rv32ui_dir / "rv32ui-sltu.elf");
+}
+
+TEST(RV32UI, sra) {
+    run_ooo_test(rv32ui_dir / "rv32ui-sra.elf");
+}
+
+TEST(RV32UI, srai) {
+    run_ooo_test(rv32ui_dir / "rv32ui-srai.elf");
+}
+
+TEST(RV32UI, srl) {
+    run_ooo_test(rv32ui_dir / "rv32ui-srl.elf");
+}
+
+TEST(RV32UI, srli) {
+    run_ooo_test(rv32ui_dir / "rv32ui-srli.elf");
+}
+
+TEST(RV32UI, st_ld) {
+    run_ooo_test(rv32ui_dir / "rv32ui-st_ld.elf");
+}
+
+TEST(RV32UI, sub) {
+    run_ooo_test(rv32ui_dir / "rv32ui-sub.elf");
+}
+
+TEST(RV32UI, sw) {
+    run_ooo_test(rv32ui_dir / "rv32ui-sw.elf");
+}
+
+TEST(RV32UI, xor) {
+    run_ooo_test(rv32ui_dir / "rv32ui-xor.elf");
+}
+
+TEST(RV32UI, xori) {
+    run_ooo_test(rv32ui_dir / "rv32ui-xori.elf");
+}
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

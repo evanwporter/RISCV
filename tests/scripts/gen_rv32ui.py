@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
 import argparse
-import sys
 import os
+import sys
+from pathlib import Path
 
 from ninja_syntax import Writer
 
@@ -39,22 +39,22 @@ def main() -> int:
     )
     parser.add_argument(
         "--cc",
-        default="riscv-none-elf-gcc",
+        default="riscv64-unknown-elf-gcc",
         help="RISC-V GCC executable.",
     )
     parser.add_argument(
         "--objcopy",
-        default="riscv-none-elf-objcopy",
+        default="riscv64-unknown-elf-objcopy",
         help="RISC-V objcopy executable.",
     )
     parser.add_argument(
         "--objdump",
-        default="riscv-none-elf-objdump",
+        default="riscv64-unknown-elf-objdump",
         help="RISC-V objdump executable.",
     )
     parser.add_argument(
         "--python",
-        default="python",
+        default="python3",
         help="Python executable used by Ninja.",
     )
     parser.add_argument(

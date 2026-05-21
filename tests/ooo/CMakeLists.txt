@@ -1,7 +1,7 @@
 add_executable(test_ooo)
-target_sources(test_ooo 
-    PRIVATE 
-        ${CMAKE_CURRENT_SOURCE_DIR}/ooo.cpp 
+target_sources(test_ooo
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/ooo_test.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/syscall.cpp)
 
 find_package(reflectcpp CONFIG REQUIRED)
@@ -9,7 +9,21 @@ target_link_libraries(test_ooo PRIVATE reflectcpp::reflectcpp)
 
 enable_testing()
 find_package(GTest CONFIG REQUIRED)
-target_link_libraries(test_ooo PRIVATE GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
+
+include(GoogleTest)
+
+gtest_discover_tests(test_ooo
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    DISCOVERY_MODE PRE_TEST
+    PROPERTIES
+        TIMEOUT 120
+)
+
+target_link_libraries(test_ooo
+  PRIVATE GTest::gtest
+          GTest::gtest_main
+          GTest::gmock
+          GTest::gmock_main)
 
 target_link_libraries(test_ooo PRIVATE libutil csv)
 
@@ -17,7 +31,6 @@ target_include_directories(test_ooo PRIVATE
     ${RV_TESTS_DIR}/
 )
 
-add_test(AllTestsInMain test_ooo)
 
 rv_add_rtl(
     TESTBENCHES
@@ -50,7 +63,7 @@ verilate(test_ooo
         --trace-params
         --trace-structs
         --trace-max-array 256
-        --trace-max-width 32 
+        --trace-max-width 32
 )
 
 target_compile_definitions(test_ooo PUBLIC

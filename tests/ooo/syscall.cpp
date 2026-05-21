@@ -2,41 +2,103 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <fcntl.h>
-#include <io.h>
-#include <sys/stat.h>
+#include <cstddef>
+
+#if defined(_WIN32)
+    #include <fcntl.h>
+    #include <io.h>
+    #include <sys/stat.h>
+
+    using host_stat_t = struct _stat;
+
+    static int host_read(int fd, void* buf, unsigned int count) {
+        return _read(fd, buf, count);
+    }
+
+    static int host_write(int fd, const void* buf, unsigned int count) {
+        return _write(fd, buf, count);
+    }
+
+    static int host_close(int fd) {
+        return _close(fd);
+    }
+
+    static long host_lseek(int fd, long offset, int whence) {
+        return _lseek(fd, offset, whence);
+    }
+
+    static int host_isatty(int fd) {
+        return _isatty(fd);
+    }
+
+    static int host_fstat(int fd, host_stat_t* st) {
+        return _fstat(fd, st);
+    }
+
+#else
+    #include <fcntl.h>
+    #include <unistd.h>
+    #include <sys/stat.h>
+    #include <sys/types.h>
+
+    using host_stat_t = struct stat;
+
+    static ssize_t host_read(int fd, void* buf, size_t count) {
+        return ::read(fd, buf, count);
+    }
+
+    static ssize_t host_write(int fd, const void* buf, size_t count) {
+        return ::write(fd, buf, count);
+    }
+
+    static int host_close(int fd) {
+        return ::close(fd);
+    }
+
+    static off_t host_lseek(int fd, off_t offset, int whence) {
+        return ::lseek(fd, offset, whence);
+    }
+
+    static int host_isatty(int fd) {
+        return ::isatty(fd);
+    }
+
+    static int host_fstat(int fd, host_stat_t* st) {
+        return ::fstat(fd, st);
+    }
+
+#endif
 
 extern "C" {
 
 // You must provide these from your simulator memory implementation.
 uint8_t* rv_translate_ptr(uint32_t guest_addr) {
     return nullptr;
-};
+}
+
 bool rv_copy_from_guest(void* dst, uint32_t guest_addr, size_t size) {
     return false;
-};
+}
+
 bool rv_copy_to_guest(uint32_t guest_addr, const void* src, size_t size) {
     return false;
-};
+}
+
 }
 
 enum SyscallNum : int {
-    SYS_read = 63,
+    SYS_read  = 63,
     SYS_write = 64,
     SYS_close = 57,
     SYS_fstat = 80,
     SYS_lseek = 62,
-    SYS_exit = 93,
+    SYS_exit  = 93,
     SYS_isatty = 89,
-    SYS_brk = 214,
+    SYS_brk   = 214,
 };
 
-static int ret_errno(long ret) {
-    if (ret < 0) {
-        return -errno;
-    }
-
-    return static_cast<int>(ret);
+static int neg_errno() {
+    return errno ? -errno : -EIO;
 }
 
 extern "C" int rv_syscall(
@@ -46,6 +108,10 @@ extern "C" int rv_syscall(
     int arg2,
     int pc,
     int* halt) {
+    if (!halt) {
+        return -EFAULT;
+    }
+
     *halt = 0;
 
     const uint32_t uarg0 = static_cast<uint32_t>(arg0);
@@ -57,16 +123,17 @@ extern "C" int rv_syscall(
         // read(fd, guest_buf, count)
         const int fd = arg0;
         const uint32_t guest_buf = uarg1;
-        const size_t count = uarg2;
+        const size_t count = static_cast<size_t>(uarg2);
 
         uint8_t* host_buf = rv_translate_ptr(guest_buf);
         if (!host_buf) {
             return -EFAULT;
         }
 
-        std::size_t ret = _read(fd, host_buf, count);
+        errno = 0;
+        auto ret = host_read(fd, host_buf, count);
         if (ret < 0) {
-            return -errno;
+            return neg_errno();
         }
 
         return static_cast<int>(ret);
@@ -76,16 +143,17 @@ extern "C" int rv_syscall(
         // write(fd, guest_buf, count)
         const int fd = arg0;
         const uint32_t guest_buf = uarg1;
-        const size_t count = uarg2;
+        const size_t count = static_cast<size_t>(uarg2);
 
         const uint8_t* host_buf = rv_translate_ptr(guest_buf);
         if (!host_buf) {
             return -EFAULT;
         }
 
-        std::size_t ret = _write(fd, host_buf, count);
+        errno = 0;
+        auto ret = host_write(fd, host_buf, count);
         if (ret < 0) {
-            return -errno;
+            return neg_errno();
         }
 
         return static_cast<int>(ret);
@@ -93,9 +161,10 @@ extern "C" int rv_syscall(
 
     case SYS_close: {
         // close(fd)
-        int ret = ::close(arg0);
+        errno = 0;
+        int ret = host_close(arg0);
         if (ret < 0) {
-            return -errno;
+            return neg_errno();
         }
 
         return ret;
@@ -103,9 +172,10 @@ extern "C" int rv_syscall(
 
     case SYS_lseek: {
         // lseek(fd, offset, whence)
-        off_t ret = _lseek(arg0, static_cast<off_t>(arg1), arg2);
+        errno = 0;
+        auto ret = host_lseek(arg0, static_cast<long>(arg1), arg2);
         if (ret < 0) {
-            return -errno;
+            return neg_errno();
         }
 
         return static_cast<int>(ret);
@@ -113,8 +183,13 @@ extern "C" int rv_syscall(
 
     case SYS_isatty: {
         // isatty(fd)
-        int ret = _isatty(arg0);
+        errno = 0;
+        int ret = host_isatty(arg0);
+
         if (ret == 0) {
+            if (errno == 0) {
+                errno = ENOTTY;
+            }
             return -errno;
         }
 
@@ -128,18 +203,17 @@ extern "C" int rv_syscall(
         // Host struct stat layout is not necessarily the same as
         // RISC-V newlib's struct stat layout.
         //
-        // For many bare-metal/newlib-style ports, returning zero with
-        // a mostly-zero struct is enough.
-        struct stat st;
+        // This direct copy is only safe if your guest libc expects
+        // a compatible layout.
+        host_stat_t st;
         std::memset(&st, 0, sizeof(st));
 
-        int ret = ::fstat(arg0, &st);
+        errno = 0;
+        int ret = host_fstat(arg0, &st);
         if (ret < 0) {
-            return -errno;
+            return neg_errno();
         }
 
-        // Simplest version: copy host struct stat directly.
-        // This only works if your guest libc expects a compatible layout.
         if (!rv_copy_to_guest(uarg1, &st, sizeof(st))) {
             return -EFAULT;
         }
@@ -149,7 +223,12 @@ extern "C" int rv_syscall(
 
     case SYS_exit: {
         // exit(status)
-        std::fprintf(stderr, "rv_syscall: exit(%d) at pc=0x%08x\n", arg0, pc);
+        std::fprintf(
+            stderr,
+            "rv_syscall: exit(%d) at pc=0x%08x\n",
+            arg0,
+            static_cast<uint32_t>(pc));
+
         *halt = 1;
         return 0;
     }
@@ -159,7 +238,6 @@ extern "C" int rv_syscall(
         //
         // Proper brk needs emulator heap tracking.
         // Returning 0 usually means failure for Linux brk semantics.
-        // Better: implement your own guest heap pointer.
         return 0;
     }
 

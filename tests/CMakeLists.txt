@@ -48,20 +48,20 @@ add_custom_command(
         $<TARGET_FILE_DIR:test_doom>/test_doom.elf
 )
 
-include(ExternalProject)
+# include(ExternalProject)
 
-ExternalProject_Add(riscv-bf
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bf
-    BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/bf/build
+# ExternalProject_Add(riscv-bf
+#     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bf
+#     BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/bf/build
 
-    CMAKE_ARGS
-        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_CURRENT_SOURCE_DIR}/riscv-toolchain.cmake
-        -DCMAKE_BUILD_TYPE=$<CONFIG>
-        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+#     CMAKE_ARGS
+#         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_CURRENT_SOURCE_DIR}/riscv-toolchain.cmake
+#         -DCMAKE_BUILD_TYPE=$<CONFIG>
+#         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
-    BUILD_ALWAYS TRUE
-    INSTALL_COMMAND ""
-)
+#     BUILD_ALWAYS TRUE
+#     INSTALL_COMMAND ""
+# )
 
 # add_executable(test_bf)
 

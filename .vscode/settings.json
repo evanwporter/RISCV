@@ -121,6 +121,7 @@
     "editor.formatOnSave": true
   },
   "python.testing.cwd": "${workspaceFolder}/test/external",
+  "clangd.path": "clangd-22",
   "clangd.arguments": [
     "--experimental-modules-support",
     "--compile-commands-dir=${workspaceFolder}/build/debug",
@@ -133,9 +134,9 @@
     // "--header-insertion=never"
   ],
   "cmake.ctest.testExplorerIntegrationEnabled": false,
-  "slang.path": "C:/Users/evanw/slang-server/build/win64-debug/bin/slang-server.exe",
-  "python-envs.defaultEnvManager": "ms-python.python:conda",
-  "python-envs.defaultPackageManager": "ms-python.python:conda",
+  // "slang.path": "C:/Users/evanw/slang-server/build/win64-debug/bin/slang-server.exe",
+  // "python-envs.defaultEnvManager": "ms-python.python:conda",
+  // "python-envs.defaultPackageManager": "ms-python.python:conda",
   "python-envs.pythonProjects": [],
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",

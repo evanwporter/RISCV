@@ -1,3 +1,5 @@
+#pragma once
+
 #include <charconv>
 #include <filesystem>
 #include <fstream>
@@ -39,7 +41,7 @@ static std::uint32_t parse_hex_u32(std::string s) {
     auto* end = s.data() + s.size();
 
     auto result = std::from_chars(begin, end, value, 16);
-    if (result.ec != std::errc {}) {
+    if (result.ec != std::errc { }) {
         throw std::runtime_error("Failed to parse hex value: " + s);
     }
 
@@ -144,6 +146,5 @@ static std::vector<ExpectedCommit> load_expected_commits_csv(const fs::path& csv
 
         commits.push_back(commit);
     }
-
     return commits;
 }

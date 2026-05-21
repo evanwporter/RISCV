@@ -9,3 +9,4 @@ planning/Untitled Diagram.svg
 .gitignore
 *.ninja
 rtl/col.py
+*.pyc
