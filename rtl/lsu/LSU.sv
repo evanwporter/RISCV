@@ -17,24 +17,40 @@ module LSU (
 );
 
   logic pop_next;
+  word_t load_data;
+
+  always_comb begin
+    unique case (ldq_bus.mem_load_funct3)
+      3'b000: load_data = {{24{mem_bus.rdata[7]}}, mem_bus.rdata[7:0]};
+      3'b001: load_data = {{16{mem_bus.rdata[15]}}, mem_bus.rdata[15:0]};
+      3'b010: load_data = mem_bus.rdata;
+      3'b100: load_data = {24'b0, mem_bus.rdata[7:0]};
+      3'b101: load_data = {16'b0, mem_bus.rdata[15:0]};
+      default: load_data = mem_bus.rdata;
+    endcase
+  end
 
   always_comb begin
     mem_bus.read_en = 1'b0;
     mem_bus.write_en = 1'b0;
     mem_bus.addr = 32'b0;
     mem_bus.wdata = 32'b0;
+    mem_bus.funct3 = 3'b010;
 
     pop_next = 1'b0;
+    ldq_bus.mem_load_ready = !stq_bus.mem_store_valid;
 
     if (stq_bus.mem_store_valid) begin
       mem_bus.write_en = 1'b1;
       mem_bus.addr = stq_bus.mem_store_addr;
       mem_bus.wdata = stq_bus.mem_store_data;
+      mem_bus.funct3 = stq_bus.mem_store_funct3;
 
       pop_next = 1'b1;
     end else if (ldq_bus.mem_load_valid) begin
       mem_bus.read_en = 1'b1;
       mem_bus.addr = ldq_bus.mem_load_addr;
+      mem_bus.funct3 = ldq_bus.mem_load_funct3;
     end
   end
 
@@ -65,7 +81,7 @@ module LSU (
 
       if (ldq_bus.mem_load_valid) begin
         rf_write_bus.en <= 1'b1;
-        rf_write_bus.data <= mem_bus.rdata;
+        rf_write_bus.data <= load_data;
         rf_write_bus.addr <= ldq_bus.mem_load_pdst;
         rf_write_bus.rob_idx <= ldq_bus.mem_load_rob_idx;
         rf_write_bus.PC <= ldq_bus.mem_load_PC;

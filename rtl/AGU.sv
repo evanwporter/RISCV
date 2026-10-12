@@ -5,6 +5,10 @@ module AGU (
     AGU_if.AGU_side bus
 );
 
+`ifdef A
+  logic a;
+`endif
+
   word_t addr_sum;
 
   always_comb begin

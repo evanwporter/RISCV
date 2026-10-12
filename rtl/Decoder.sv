@@ -14,30 +14,34 @@ module Decoder (
 
     input logic renamer_fire,
 
-    output decoder_output_t decoder_out
+    output decoder_output_t decoder_out,
+    output logic ready
 );
-
-  wire decoder_ready = !flush && (!decoder_out.valid || renamer_fire);
-
-  wire decoder_fire = decoder_in.valid && decoder_ready;
 
   decoded_word_t decoded_IR;
   assign decoded_IR = decoder_in.IR;
 
   uop_t uop_next;
 
+  always_comb begin
+    ready = !flush &&
+            (!decoder_out.valid || renamer_fire) &&
+            !(uop_next.is_load && ldq_bus.full) &&
+            !(uop_next.is_store && stq_bus.full);
+  end
+
+  wire decoder_fire = decoder_in.valid && ready;
+
+  assign stq_bus.push = decoder_fire && (decoded_IR.opcode == OP_S_TYPE);
+  assign ldq_bus.push = decoder_fire && (decoded_IR.opcode == OP_I_LOAD_TYPE);
+
   // Pipeline register
   always_ff @(posedge clk) begin
     if (reset || flush) begin
       decoder_out  <= '0;
-      stq_bus.push <= 1'b0;
-      ldq_bus.push <= 1'b0;
     end else begin
       // If the renamer accepts the decoder output, then we can clear the decoder.
       decoder_out.valid <= decoder_out.valid && !renamer_fire;
-
-      stq_bus.push <= 1'b0;
-      ldq_bus.push <= 1'b0;
 
       if (decoder_fire) begin
         decoder_out.uop <= uop_next;
@@ -49,10 +53,8 @@ module Decoder (
                              uop_next.is_ecall;
 
         if (decoded_IR.opcode == OP_S_TYPE) begin
-          stq_bus.push <= 1'b1;
           decoder_out.stq_idx <= stq_bus.tail_idx;
         end else if (decoded_IR.opcode == OP_I_LOAD_TYPE) begin
-          ldq_bus.push <= 1'b1;
           decoder_out.ldq_idx <= ldq_bus.free_idx;
         end
       end

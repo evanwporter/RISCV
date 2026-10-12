@@ -36,7 +36,7 @@ static constexpr int ROB_WIDTH_TB = 256;
 static constexpr int IQ_WIDTH_TB = 256;
 
 static const fs::path test_dir = fs::path { TEST_DIR };
-static const fs::path rv32ui_dir = fs::path { "/home/evanw/RISCV/build/rv32ui" };
+static const fs::path rv32ui_dir = fs::path { "/home/evanp/RISCV/build/rv32ui" };
 
 double sc_time_stamp() {
     return static_cast<double>(g_verilator_time);

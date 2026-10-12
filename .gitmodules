@@ -7,3 +7,6 @@
 [submodule "tests/common/elf"]
 	path = tests/common/elf
 	url = https://github.com/evanwporter/elf
+[submodule "ext/reflect-cpp"]
+	path = ext/reflect-cpp
+	url = https://github.com/getml/reflect-cpp.git

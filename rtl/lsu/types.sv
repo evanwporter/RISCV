@@ -11,6 +11,7 @@ package riscv_lsu_types_pkg;
     addr_t addr;
 
     logic issued;
+    logic [2:0] funct3;
 
     physical_reg_t pdst;
 
@@ -52,6 +53,7 @@ package riscv_lsu_types_pkg;
 
     /// Data to store
     word_t data;
+    logic [2:0] funct3;
 
     /// ROB index of the store
     logic [ROB_IDX_WIDTH-1:0] rob_idx;

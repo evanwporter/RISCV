@@ -72,10 +72,11 @@ interface STQ_if;
 
   /// Data to send to memory for the head store
   word_t mem_store_data;
+  logic [2:0] mem_store_funct3;
 
   logic [STQ_IDX_WIDTH-1:0] mem_store_idx;
 
-  modport Decoder_side(input tail_idx, output push, output push_rob_idx);
+  modport Decoder_side(input tail_idx, full, output push, output push_rob_idx);
 
   modport STQ_side(
       input push, pop,
@@ -86,15 +87,15 @@ interface STQ_if;
       output entries,
       output valid_mask,
       output tail_idx, head_idx,
-      output mem_store_valid, mem_store_addr, mem_store_data, mem_store_idx
+      output mem_store_valid, mem_store_addr, mem_store_data, mem_store_funct3, mem_store_idx
   );
 
   modport LSU_side(
-      input mem_store_valid, mem_store_addr, mem_store_data, mem_store_idx,
+      input mem_store_valid, mem_store_addr, mem_store_data, mem_store_funct3, mem_store_idx,
       output pop
   );
 
-  modport LDQ_side(input entries, input pop, head_idx);
+  modport LDQ_side(input entries, input push, pop, tail_idx, head_idx, mem_store_valid);
 
   modport Execution_side(
       output write_addr,
@@ -144,6 +145,7 @@ interface LDQ_if;
 
   /// Address to send to memory for the load/read
   addr_t mem_load_addr;
+  logic [2:0] mem_load_funct3;
 
   physical_reg_t mem_load_pdst;
 
@@ -152,6 +154,7 @@ interface LDQ_if;
   addr_t mem_load_PC;
 
   logic [LDQ_IDX_WIDTH-1:0] mem_load_idx;
+  logic mem_load_ready;
 
   // ----------------------------
   // Writeback
@@ -163,7 +166,7 @@ interface LDQ_if;
   /// Index of the load entry that has been written back
   logic [LDQ_IDX_WIDTH-1:0] wb_idx;
 
-  modport Decoder_side(input free_idx, output push);
+  modport Decoder_side(input free_idx, full, output push);
 
   // ----------------------------
   // In-Flight Store
@@ -174,7 +177,8 @@ interface LDQ_if;
   logic [STQ_IDX_WIDTH-1:0] store_write_inflight_idx;
 
   modport LSU_side(
-      input mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC, mem_load_idx,
+      input mem_load_valid, mem_load_addr, mem_load_funct3, mem_load_pdst, mem_load_rob_idx, mem_load_PC, mem_load_idx,
+      output mem_load_ready,
       output store_write_inflight, store_write_inflight_idx,
       output wb_valid, wb_idx
   );
@@ -183,9 +187,10 @@ interface LDQ_if;
       input push,
       input write_addr, write_addr_idx, write_addr_value,
       input wb_valid, wb_idx,
+      input mem_load_ready,
       input store_write_inflight, store_write_inflight_idx,
       output full,
-      output mem_load_valid, mem_load_addr, mem_load_pdst, mem_load_rob_idx, mem_load_PC, mem_load_idx,
+      output mem_load_valid, mem_load_addr, mem_load_funct3, mem_load_pdst, mem_load_rob_idx, mem_load_PC, mem_load_idx,
       output free_idx
   );
 

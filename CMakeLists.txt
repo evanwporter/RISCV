@@ -6,6 +6,11 @@ enable_testing()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(REFLECTCPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(REFLECTCPP_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+set(REFLECTCPP_USE_VCPKG OFF CACHE BOOL "" FORCE)
+add_subdirectory(ext/reflect-cpp)
+
 include(CheckCXXCompilerFlag)
 
 # TODO: The CMake is incredibly messy right now. Clean it up.
@@ -69,7 +74,6 @@ target_include_directories(rv PRIVATE
 
 target_link_libraries(rv PRIVATE
     librv
-    argparse
 )
 
 set(SLANG_F_CONTENT

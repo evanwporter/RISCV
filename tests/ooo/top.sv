@@ -114,10 +114,20 @@ module MockInstructionMemory (
                data_bus.wdata);
 
       if (addr <= MEM_BYTES - 4) begin
-        mem[addr+0] <= data_bus.wdata[7:0];
-        mem[addr+1] <= data_bus.wdata[15:8];
-        mem[addr+2] <= data_bus.wdata[23:16];
-        mem[addr+3] <= data_bus.wdata[31:24];
+        unique case (data_bus.funct3)
+          3'b000: mem[addr+0] <= data_bus.wdata[7:0];
+          3'b001: begin
+            mem[addr+0] <= data_bus.wdata[7:0];
+            mem[addr+1] <= data_bus.wdata[15:8];
+          end
+          3'b010: begin
+            mem[addr+0] <= data_bus.wdata[7:0];
+            mem[addr+1] <= data_bus.wdata[15:8];
+            mem[addr+2] <= data_bus.wdata[23:16];
+            mem[addr+3] <= data_bus.wdata[31:24];
+          end
+          default: `RV_ASSERT(0, ("Invalid store funct3=%03b", data_bus.funct3))
+        endcase
       end else begin
         $display("WARNING: store outside mock memory addr=%08h", data_bus.addr);
       end

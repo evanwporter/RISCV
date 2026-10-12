@@ -10,3 +10,7 @@ planning/Untitled Diagram.svg
 *.ninja
 rtl/col.py
 *.pyc
+.envrc
+.direnv/
+compile_commands.json
+*.log

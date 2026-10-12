@@ -30,7 +30,7 @@ module Dispatcher (
   /// We either to push to the `IQs` and `ROB`, or we stall the pipeline. All or nothing.
   wire dispatch_ready = rat_out.valid && !rob_bus.full && iq_ready;
 
-  assign dispatcher_fire = rat_out.valid && dispatch_ready;
+  assign dispatcher_fire = dispatch_ready;
 
   // ROB entry construction
   always_comb begin

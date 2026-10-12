@@ -103,6 +103,18 @@ module ReorderBuffer (
         entries[bus.STR_executed_op.executed_op_rob_idx].busy <= 1'b0;
       end
 
+      if (wb_bus.alu_writeback.valid && survives_flush(wb_bus.alu_writeback.rob_idx)) begin
+        entries[wb_bus.alu_writeback.rob_idx].uop.dest_value <= wb_bus.alu_writeback.data;
+        entries[wb_bus.alu_writeback.rob_idx].issued <= 1'b1;
+        entries[wb_bus.alu_writeback.rob_idx].busy <= 1'b0;
+      end
+
+      if (wb_bus.mem_writeback.valid && survives_flush(wb_bus.mem_writeback.rob_idx)) begin
+        entries[wb_bus.mem_writeback.rob_idx].uop.dest_value <= wb_bus.mem_writeback.data;
+        entries[wb_bus.mem_writeback.rob_idx].issued <= 1'b1;
+        entries[wb_bus.mem_writeback.rob_idx].busy <= 1'b0;
+      end
+
       // Invalidate younger entries
       for (int i = 0; i < ROB_WIDTH; i++) begin
         if (entries[i].valid) begin
@@ -199,6 +211,7 @@ module ReorderBuffer (
             ("Invalid destination expected p%0d, recieved p%0d", wb_bus.alu_writeback.pdst, entry.uop.pdst))
         entries[wb_bus.alu_writeback.rob_idx].uop.dest_value <= wb_bus.alu_writeback.data;
         entries[wb_bus.alu_writeback.rob_idx].issued <= 1'b1;
+        entries[wb_bus.alu_writeback.rob_idx].busy <= 1'b0;
       end
 
       if (wb_bus.mem_writeback.valid) begin
@@ -212,6 +225,7 @@ module ReorderBuffer (
             ("Invalid destination expected p%0d, recieved p%0d", wb_bus.mem_writeback.pdst, entry.uop.pdst))
         entries[wb_bus.mem_writeback.rob_idx].uop.dest_value <= wb_bus.mem_writeback.data;
         entries[wb_bus.mem_writeback.rob_idx].issued <= 1'b1;
+        entries[wb_bus.mem_writeback.rob_idx].busy <= 1'b0;
       end
 
       if (ldq_bus.write_addr) begin
@@ -228,7 +242,11 @@ module ReorderBuffer (
 
       if (stq_bus.write_data) begin
         entries[stq_bus.write_data_rob_idx].store_data_valid <= 1'b1;
-        entries[stq_bus.write_data_rob_idx].store_data <= stq_bus.write_data_value;
+        unique case (entries[stq_bus.write_data_rob_idx].uop.inst.extra.s_type.funct3)
+          3'b000: entries[stq_bus.write_data_rob_idx].store_data <= {24'b0, stq_bus.write_data_value[7:0]};
+          3'b001: entries[stq_bus.write_data_rob_idx].store_data <= {16'b0, stq_bus.write_data_value[15:0]};
+          default: entries[stq_bus.write_data_rob_idx].store_data <= stq_bus.write_data_value;
+        endcase
       end
 
     end

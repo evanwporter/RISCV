@@ -58,6 +58,7 @@ module RISCV (
   logic dispatcher_fire;
 
   logic rename_stall;
+  logic decoder_ready;
 
   wire structural_stall =
     decoder_out.valid &&
@@ -70,6 +71,7 @@ module RISCV (
     );
 
   assign instruction_mem_bus.addr = PC;
+  assign instruction_mem_bus.funct3 = 3'b010;
   assign instruction_mem_bus.read_en = advance_pipeline;
 
   assign decoder_in.IR = instruction_mem_bus.rdata;
@@ -122,7 +124,8 @@ module RISCV (
     !flush_info.valid &&
     !just_released_reset &&
     !rename_stall &&
-    !structural_stall;
+    !structural_stall &&
+    decoder_ready;
 
   Decoder decoder (
       .clk(clk),
@@ -132,7 +135,8 @@ module RISCV (
       .renamer_fire(renamer_fire),
       .stq_bus(stq_bus),
       .ldq_bus(ldq_bus),
-      .decoder_out(decoder_out)
+      .decoder_out(decoder_out),
+      .ready(decoder_ready)
   );
 
   RegisterRenamer renamer (

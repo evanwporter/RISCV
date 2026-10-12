@@ -37,6 +37,7 @@ module STQ (
   assign bus.mem_store_valid = head_can_fire;
   assign bus.mem_store_addr  = entries[bus.head_idx].addr;
   assign bus.mem_store_data  = entries[bus.head_idx].data;
+  assign bus.mem_store_funct3 = entries[bus.head_idx].funct3;
   assign bus.mem_store_idx   = bus.head_idx;
 
   genvar i;
@@ -126,6 +127,7 @@ module STQ (
       if (rat_out.valid && rat_out.uop.is_store) begin
         entries[rat_out.stq_idx].rob_idx <= rat_out.rob_idx;
         entries[rat_out.stq_idx].PC <= rat_out.uop.pc;
+        entries[rat_out.stq_idx].funct3 <= rat_out.uop.inst.extra.s_type.funct3;
       end
     end
   end

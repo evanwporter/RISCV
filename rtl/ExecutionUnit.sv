@@ -266,20 +266,18 @@ module ExecutionUnit (
       // ALU completion
       if (alu_iq_bus.issue_valid &&
           alu_live &&
-          (alu_uop.is_alu || alu_uop.is_branch || alu_uop.is_jump)) begin
+          (alu_uop.is_branch ||
+           ((alu_uop.is_alu || alu_uop.is_jump) &&
+            (!alu_uop.has_rd || alu_uop.rd == x0)))) begin
         rob_bus.ALU_executed_op.executed_op_valid   <= 1'b1;
         rob_bus.ALU_executed_op.executed_op_rob_idx <= alu_iq_bus.issue_entry.rob_idx;
       end
 
-      // Load/Store completion
-      if (mem_iq_bus.issue_valid && (mem_uop.is_store || mem_uop.is_load)) begin
-        if (mem_uop.is_store) begin
-          rob_bus.STR_executed_op.executed_op_valid   <= 1'b1;
-          rob_bus.STR_executed_op.executed_op_rob_idx <= mem_iq_bus.issue_entry.rob_idx;
-        end else if (mem_uop.is_load) begin
-          rob_bus.STR_executed_op.executed_op_valid   <= 1'b1;
-          rob_bus.STR_executed_op.executed_op_rob_idx <= mem_iq_bus.issue_entry.rob_idx;
-        end
+      // A store completes once its address and data have executed. A load must
+      // remain busy until its data returns through the memory writeback path.
+      if (mem_iq_bus.issue_valid && mem_uop.is_store) begin
+        rob_bus.STR_executed_op.executed_op_valid   <= 1'b1;
+        rob_bus.STR_executed_op.executed_op_rob_idx <= mem_iq_bus.issue_entry.rob_idx;
       end
     end
   end

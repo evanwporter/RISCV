@@ -44,7 +44,7 @@ Every time a writeback of a micro-op finishes, a writeback tag is produced. This
 
 A source reg in the IQ is readied when it’s written back. Its written back via the Register File. Every operand (source) in every IQ entry that is waiting on that physical register is marked ready. 
 
-Every cycle (ie: [[Overview#Issue]] Stage) it scans every entry, and selects a limited number (based on execution ports) of ready UOPs (ready means both source registers are marked ready) to issue onto the execution unit.
+Every cycle (ie: [[Overview#Issue Queue]] Stage) it scans every entry, and selects a limited number (based on execution ports) of ready UOPs (ready means both source registers are marked ready) to issue onto the execution unit.
 
 ## Reorder Buffer
 
@@ -110,6 +110,7 @@ Each LDQ entry contains:
 - `addr_valid + addr`
 - `pdst` (physical destination register)
 - `st_dep_mask` (store dependency mask)
+
 #### Lifecycle of a Load
 1. **Allocation (Decode / Dispatch)**
     - Entry is allocated (`valid = 1`)
